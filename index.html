@@ -1,0 +1,1795 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Catty Games</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&family=Tilt+Neon&display=swap">
+<style>
+/* Layout: a glowing arcade sign on top, tappable neon game cards below; each game opens as a full-screen stage with its own colour. Single dark neon theme by design. */
+:root{
+  --bg:#07040f; --panel:#0e0820; --panel-2:#170d33; --ink:#f3eaff; --muted:#a899d4;
+  --pink:#ff2e9a; --cyan:#22f0ff; --lime:#b8ff3d; --violet:#a86bff; --amber:#ffb02e; --coral:#ff5a4e;
+  --display:'Tilt Neon','Arial Rounded MT Bold',system-ui,sans-serif;
+  --body:'Exo 2',system-ui,-apple-system,'Segoe UI',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(60% 40% at 50% 0%,rgba(255,46,154,.22),transparent 70%),
+    radial-gradient(50% 35% at 100% 30%,rgba(168,107,255,.16),transparent 70%),
+    radial-gradient(50% 35% at 0% 60%,rgba(34,240,255,.12),transparent 70%);
+  color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;
+  padding-block:22px 44px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;overflow-x:hidden;
+}
+body.playing{overflow:hidden}
+.floor{position:fixed;left:-50%;right:-50%;bottom:0;height:46vh;pointer-events:none;z-index:0;opacity:.5;
+  background:
+    repeating-linear-gradient(90deg,rgba(255,46,154,.55) 0 2px,transparent 2px 70px),
+    repeating-linear-gradient(0deg,rgba(34,240,255,.45) 0 2px,transparent 2px 46px);
+  transform:perspective(360px) rotateX(64deg);transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(to top,#000 0%,transparent 85%);mask-image:linear-gradient(to top,#000 0%,transparent 85%)}
+.page{position:relative;z-index:1;max-width:1040px;margin:0 auto}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+
+/* ---------- sign ---------- */
+@property --a{syntax:'<angle>';initial-value:0deg;inherits:false}
+.sign{--a:0deg;position:relative;isolation:isolate;text-align:center;max-width:760px;margin:0 auto 28px;
+  padding:22px 18px 20px;border-radius:28px;background:rgba(10,5,24,.78);
+  box-shadow:0 0 28px rgba(255,46,154,.35),0 0 80px rgba(168,107,255,.22),inset 0 0 36px rgba(168,107,255,.16)}
+.sign::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;z-index:-1;
+  background:conic-gradient(from var(--a),var(--pink),var(--violet),var(--cyan),var(--lime),var(--amber),var(--pink));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  animation:spin 7s linear infinite}
+@keyframes spin{to{--a:360deg}}
+.catsign{width:min(34vw,120px);height:auto;display:block;margin:0 auto 4px;overflow:visible;
+  filter:drop-shadow(0 0 3px var(--pink)) drop-shadow(0 0 14px var(--pink))}
+.catsign .eye{stroke:var(--cyan)}
+.logo{margin:0;font-family:var(--display);font-weight:400;text-transform:uppercase;line-height:.95;
+  font-size:clamp(46px,13vw,104px);letter-spacing:.03em;display:flex;flex-wrap:wrap;justify-content:center;gap:0 .3em}
+.logo .w1{color:#ffd3ec;text-shadow:0 0 4px var(--pink),0 0 14px var(--pink),0 0 34px var(--pink),0 0 70px rgba(255,46,154,.7);animation:flick 2s 1 both}
+.logo .w2{color:#d6fcff;text-shadow:0 0 4px var(--cyan),0 0 14px var(--cyan),0 0 34px var(--cyan),0 0 70px rgba(34,240,255,.7);animation:flick 2s .35s 1 both}
+@keyframes flick{
+  0%,12%,16%,52%,56%,100%{opacity:1}
+  13%,15%,54%{opacity:.25}
+  0%{opacity:.15}
+}
+.tag{margin:12px auto 14px;max-width:34ch;color:var(--muted);font-size:1.05rem}
+.snd{font:700 .8rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--pink);background:transparent;
+  border:2px solid var(--pink);border-radius:999px;padding:8px 16px;min-height:40px;touch-action:manipulation;
+  box-shadow:0 0 10px rgba(255,46,154,.55),inset 0 0 10px rgba(255,46,154,.25)}
+.snd[aria-pressed="false"]{color:var(--muted);border-color:#4b3d73;box-shadow:none}
+
+/* ---------- cards ---------- */
+.grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:20px}
+.grid>li{min-width:0}
+.card{appearance:none;-webkit-appearance:none;width:100%;height:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  display:grid;grid-template-columns:68px minmax(0,1fr);gap:16px;align-items:center;
+  padding:16px;min-height:124px;border-radius:20px;border:2px solid var(--c);
+  background:linear-gradient(160deg,var(--panel-2),var(--panel));
+  box-shadow:0 0 8px var(--c),0 0 26px var(--cg),inset 0 0 22px var(--cg);
+  transition:transform .12s ease,box-shadow .12s ease;touch-action:manipulation}
+.card:active{transform:scale(.97);box-shadow:0 0 14px var(--c),0 0 44px var(--cg),inset 0 0 30px var(--cg)}
+@media (hover:hover){.card:hover{transform:translateY(-3px)}}
+.ico{color:var(--c);display:block;width:68px;height:68px;filter:drop-shadow(0 0 5px var(--c)) drop-shadow(0 0 12px var(--cg))}
+.ico svg{width:100%;height:100%;display:block}
+.meta{display:grid;gap:6px;min-width:0}
+.name{font-family:var(--display);font-size:1.7rem;line-height:1;text-transform:uppercase;letter-spacing:.04em;color:var(--c);
+  text-shadow:0 0 4px var(--c),0 0 14px var(--c),0 0 30px var(--cg)}
+.blurb{color:#d6caf3;font-size:.95rem;line-height:1.35}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:2px}
+.chip{font-size:.68rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:2px 10px}
+.best{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.best b{font:400 1.1rem var(--display);color:var(--ink);letter-spacing:.04em;margin-left:4px;font-variant-numeric:tabular-nums}
+.foot-note{margin:30px 0 0;text-align:center;color:var(--muted);font-size:.85rem;letter-spacing:.04em}
+
+/* ---------- stage ---------- */
+#stage{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;gap:8px;background:var(--bg);
+  padding-top:max(10px,env(safe-area-inset-top,0px));padding-bottom:max(12px,env(safe-area-inset-bottom,0px));
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));
+  touch-action:none;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.hud{display:flex;align-items:center;gap:12px;flex:none;min-height:48px}
+.hudbtn{display:inline-flex;align-items:center;gap:6px;font:700 .85rem var(--body);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--c);background:transparent;border:2px solid var(--c);border-radius:999px;padding:8px 14px 8px 10px;min-height:44px;
+  box-shadow:0 0 10px var(--cg),inset 0 0 10px var(--cg);touch-action:manipulation}
+.hud-title{flex:1;min-width:0;text-align:center;font-family:var(--display);font-size:1.5rem;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--c);text-shadow:0 0 4px var(--c),0 0 16px var(--c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat{display:grid;justify-items:end;gap:2px;line-height:1;min-width:52px}
+.stat .lbl{font-size:.6rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.stat b{font:400 1.55rem var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+#host{position:relative;flex:1;min-height:0;border:2px solid var(--c);border-radius:18px;overflow:hidden;background:#05030b;
+  box-shadow:0 0 10px var(--c),0 0 34px var(--cg),inset 0 0 28px var(--cg)}
+#field{position:absolute;inset:0}
+#stage.ext .stat{visibility:hidden}
+#veil{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:20px;text-align:center;background:rgba(5,3,11,.84)}
+.veil-box{display:grid;gap:14px;justify-items:center;max-width:440px}
+.veil-title{font-family:var(--display);font-size:clamp(2.2rem,8vw,3.6rem);line-height:1;text-transform:uppercase;color:var(--c);
+  text-shadow:0 0 5px var(--c),0 0 18px var(--c),0 0 44px var(--cg)}
+.veil-score{font-size:1.1rem;color:var(--muted)}
+.veil-score b{font:400 2.6rem var(--display);color:var(--ink);display:block;line-height:1;text-shadow:0 0 14px var(--c)}
+.veil-score em{display:block;margin-top:6px;font-style:normal;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--lime);text-shadow:0 0 10px var(--lime)}
+.veil-text{margin:0;color:#d6caf3;font-size:1.05rem}
+.veil-actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:6px}
+.btn{font:700 1.05rem var(--body);letter-spacing:.14em;text-transform:uppercase;color:#07040f;background:var(--c);border:2px solid var(--c);
+  border-radius:999px;padding:12px 30px;min-height:52px;box-shadow:0 0 20px var(--c);touch-action:manipulation}
+.btn:active{transform:scale(.96)}
+.btn.ghost{background:transparent;color:var(--c);box-shadow:inset 0 0 12px var(--cg)}
+
+/* ---------- Cat Match ---------- */
+.mgrid{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:10px}
+.mc{position:relative;display:block;padding:0;border:0;background:none;perspective:700px;touch-action:manipulation;cursor:pointer;min-width:0;min-height:0}
+.mc .in{position:absolute;inset:0;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .35s ease}
+.mc.up .in,.mc.gone .in{transform:rotateY(180deg)}
+.mc .bk,.mc .fr{position:absolute;inset:0;display:grid;place-items:center;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.mc .bk{border:2px solid var(--c);background:linear-gradient(160deg,#1b1030,#0d0719);box-shadow:0 0 10px var(--cg),inset 0 0 14px var(--cg);font-size:clamp(18px,5vmin,34px);opacity:.95}
+.mc .fr{transform:rotateY(180deg);border:2px solid var(--lime);background:#0c1408;box-shadow:0 0 14px rgba(184,255,61,.5);font-size:clamp(26px,9vmin,66px)}
+.mc.gone .fr{border-color:var(--cyan);box-shadow:0 0 14px rgba(34,240,255,.6);background:#06141a}
+
+/* ---------- Echo ---------- */
+.estatus{position:absolute;left:0;right:0;top:12px;text-align:center;font-family:var(--display);font-size:1.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink);text-shadow:0 0 12px var(--c)}
+.pads{position:absolute;left:50%;top:calc(50% + 22px);transform:translate(-50%,-50%);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px}
+.pad{display:block;padding:0;border-radius:24px;border:3px solid var(--p);background:rgba(0,0,0,.35);opacity:.5;touch-action:manipulation;
+  box-shadow:0 0 10px var(--p),inset 0 0 20px var(--p);transition:opacity .08s,background .08s,box-shadow .08s}
+.pad.lit{opacity:1;background:var(--p);box-shadow:0 0 30px var(--p),0 0 80px var(--p),inset 0 0 30px rgba(255,255,255,.5)}
+
+/* ---------- filters ---------- */
+.filters{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 0 22px}
+.fchip{font:700 .8rem var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);background:transparent;
+  border:2px solid #4b3d73;border-radius:999px;padding:8px 18px;min-height:42px;touch-action:manipulation}
+.fchip[aria-pressed="true"]{color:#07040f;background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 16px var(--cyan)}
+
+/* ---------- Mouse Pop ---------- */
+.hgrid{position:absolute;left:50%;top:calc(50% + 22px);transform:translate(-50%,-50%);display:grid;
+  grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:12px}
+.hole{position:relative;display:block;padding:0;overflow:hidden;border-radius:22px;border:3px solid var(--c);
+  background:radial-gradient(120% 90% at 50% 100%,#000 0 40%,#12091f 75%);
+  box-shadow:0 0 10px var(--cg),inset 0 -14px 24px rgba(0,0,0,.8);touch-action:manipulation}
+.hm{position:absolute;left:0;right:0;bottom:-90%;height:80%;display:grid;place-items:center;
+  font-size:clamp(30px,11vmin,84px);line-height:1;transition:bottom .09s ease-out}
+.hole.up .hm{bottom:8%}
+
+/* ---------- Fish Rush ---------- */
+.rush{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
+@media (orientation:landscape){.rush{flex-direction:row}}
+.rleft{flex:1.1;min-height:0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center}
+.rtime{font:400 1.3rem var(--display);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.rwallet{font:400 1.2rem var(--display);color:var(--muted);line-height:1}
+.rwallet b{font-size:2.6rem;color:var(--ink);text-shadow:0 0 14px var(--c);font-weight:400;font-variant-numeric:tabular-nums}
+.rrate{color:var(--muted);font-size:.8rem;letter-spacing:.14em;text-transform:uppercase}
+.bigfish{width:clamp(120px,30vmin,240px);aspect-ratio:1;border-radius:50%;border:3px solid var(--c);color:inherit;
+  background:radial-gradient(circle,rgba(255,143,216,.25),transparent 70%);font-size:clamp(56px,17vmin,120px);line-height:1;
+  box-shadow:0 0 22px var(--c),inset 0 0 30px var(--cg);touch-action:manipulation}
+.bigfish:active{transform:scale(.92)}
+.rshop{flex:1;min-height:0;min-width:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:center}
+.upg{display:grid;gap:2px;text-align:left;padding:10px 12px;border-radius:14px;border:2px solid var(--c);background:rgba(0,0,0,.4);
+  color:var(--ink);font:inherit;touch-action:manipulation;min-width:0}
+.upg.poor{opacity:.45;border-color:#4b3d73}
+.upg .un{font-weight:700;color:var(--c)}
+.upg .ud{font-size:.8rem;color:var(--muted)}
+.upg .uc{font-size:.9rem;font-variant-numeric:tabular-nums}
+.pop{position:absolute;pointer-events:none;font:400 1.5rem var(--display);color:var(--c);text-shadow:0 0 10px var(--c);animation:pop .7s ease-out forwards}
+@keyframes pop{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-56px)}}
+
+/* ---------- tabs and popular list ---------- */
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:760px;margin:0 auto 24px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;font:700 .95rem var(--body);letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);background:rgba(10,5,24,.75);border:2px solid #4b3d73;border-radius:16px;padding:12px 8px;min-height:62px;touch-action:manipulation}
+.tab span{font:400 1.5rem var(--display);letter-spacing:.04em;line-height:1}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--t);box-shadow:0 0 14px var(--t),inset 0 0 20px var(--tg)}
+.tab[aria-selected="true"] span{color:var(--t);text-shadow:0 0 12px var(--t)}
+.pnote{max-width:56ch;margin:0 auto 16px;text-align:center;color:var(--muted);font-size:.95rem}
+.psearch{max-width:560px;margin:0 auto 16px}
+.psearch input{width:100%;font:600 1.05rem var(--body);color:var(--ink);background:rgba(10,5,24,.85);border:2px solid var(--pink);border-radius:14px;
+  padding:12px 16px;min-height:52px;box-shadow:0 0 12px rgba(255,46,154,.4),inset 0 0 14px rgba(255,46,154,.15)}
+.psearch input::placeholder{color:var(--muted)}
+.pcount{text-align:center;color:var(--muted);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px}
+.plist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.plist>li{min-width:0}
+.prow{display:grid;align-content:start;gap:5px;height:100%;padding:12px 14px;border-radius:14px;border:2px solid var(--c);color:inherit;text-decoration:none;
+  background:linear-gradient(160deg,var(--panel-2),var(--panel));box-shadow:0 0 6px var(--c),inset 0 0 14px var(--cg);touch-action:manipulation}
+.prow:active{transform:scale(.98)}
+.pn{font-family:var(--display);font-size:1.25rem;line-height:1.1;color:var(--c);text-shadow:0 0 4px var(--c),0 0 14px var(--cg);overflow-wrap:anywhere}
+.pd{color:#d6caf3;font-size:.86rem;line-height:1.35}
+.pc{font-size:.64rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+@media (max-width:520px){
+  .hud-title{font-size:1.15rem}
+  .name{font-size:1.5rem}
+  .ico{width:56px;height:56px}
+  .card{grid-template-columns:56px minmax(0,1fr);gap:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sign::before{animation:none}
+  .logo .w1,.logo .w2{animation:none}
+  .card,.mc .in,.pad{transition:none}
+}
+</style>
+
+<div class="floor" aria-hidden="true"></div>
+<div class="page">
+  <header class="sign">
+    <svg class="catsign" viewBox="0 0 120 92" fill="none" stroke="#ff2e9a" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M22 80C10 62 12 36 22 12L44 30C54 27 66 27 76 30L98 12C108 36 110 62 98 80C86 90 34 90 22 80Z"/>
+      <ellipse class="eye" cx="43" cy="52" rx="6" ry="8"/>
+      <ellipse class="eye" cx="77" cy="52" rx="6" ry="8"/>
+      <path d="M55 63H65L60 69Z"/>
+      <path d="M60 69Q55 76 49 72M60 69Q65 76 71 72"/>
+      <path d="M30 62L6 57M30 69L6 75M90 62L114 57M90 69L114 75"/>
+    </svg>
+    <h1 class="logo"><span class="w1">Catty</span><span class="w2">Games</span></h1>
+    <p class="tag">Twelve original games for your iPad. Swipe, tap or drag. No logins.</p>
+    <button class="snd" id="snd" type="button" aria-pressed="true">Sound on</button>
+  </header>
+  <div class="tabs" role="tablist" aria-label="Game sections">
+    <button class="tab" id="tab-orig" role="tab" type="button" aria-selected="true" aria-controls="orig" style="--t:var(--cyan);--tg:rgba(34,240,255,.2)">Catty Originals <span>12</span></button>
+    <button class="tab" id="tab-pop" role="tab" type="button" aria-selected="false" aria-controls="pop" style="--t:var(--pink);--tg:rgba(255,46,154,.2)">Popular Games <span>250</span></button>
+  </div>
+  <main>
+    <section id="orig" role="tabpanel" aria-labelledby="tab-orig">
+      <nav class="filters" id="filters" aria-label="Game types"></nav>
+      <ul class="grid" id="grid"></ul>
+    </section>
+    <section id="pop" role="tabpanel" aria-labelledby="tab-pop" hidden>
+      <p class="pnote">Almost every game plays right here inside the site — tap one to start. Games marked ↗ open on their official site in a new tab.</p>
+      <div class="psearch">
+        <label class="sr" for="psearch">Search popular games</label>
+        <input id="psearch" type="search" placeholder="Search 250 games" autocomplete="off" autocapitalize="off" spellcheck="false">
+      </div>
+      <nav class="filters" id="pfilters" aria-label="Popular game categories"></nav>
+      <p class="pcount" id="pcount" aria-live="polite"></p>
+      <ul class="plist" id="plist"></ul>
+    </section>
+  </main>
+  <p class="foot-note">Best scores save on this device.</p>
+</div>
+
+<section id="stage" hidden aria-label="Game">
+  <header class="hud">
+    <button class="hudbtn" id="back" type="button"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 2 4 8l6 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Menu</button>
+    <div class="hud-title" id="gtitle"></div>
+    <div class="stat"><span class="lbl">Score</span><b id="score">0</b></div>
+    <div class="stat"><span class="lbl">Best</span><b id="best">0</b></div>
+  </header>
+  <div id="host">
+    <div id="field"></div>
+    <div id="veil">
+      <div class="veil-box">
+        <div class="veil-title" id="vtitle"></div>
+        <div class="veil-score" id="vscore" hidden></div>
+        <p class="veil-text" id="vtext"></p>
+        <div class="veil-actions">
+          <button class="btn" id="vplay" type="button">Play</button>
+          <button class="btn ghost" id="vmenu" type="button" hidden>Menu</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var rnd=function(n){return Math.floor(Math.random()*n);};
+var clamp=function(v,a,b){return Math.max(a,Math.min(b,v));};
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1);var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+/* storage: real device storage when available, in-memory fallback otherwise (private mode, embeds) */
+var LS=(function(){try{var s=window['local'+'Storage'];s.setItem('__catty','1');s.removeItem('__catty');return s;}catch(e){return null;}})();
+if(!LS){var mem={};LS={getItem:function(k){return mem[k]!==undefined?mem[k]:null;},setItem:function(k,v){mem[k]=String(v);},removeItem:function(k){delete mem[k];}};}
+var store={
+  get:function(k,d){try{var v=LS.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},
+  set:function(k,v){try{LS.setItem(k,JSON.stringify(v));}catch(e){}}
+};
+
+/* ---------- sound ---------- */
+var actx=null,soundOn=store.get('catty:sound',true);
+function audio(){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){actx=null;}}
+  if(actx&&actx.state==='suspended'){try{actx.resume();}catch(e){}}
+  return actx;
+}
+function beep(f,d,type,vol,slide){
+  if(!soundOn)return;var a=audio();if(!a)return;
+  d=d||.08;type=type||'square';vol=vol||.05;
+  try{
+    var o=a.createOscillator(),g=a.createGain(),t=a.currentTime;
+    o.type=type;o.frequency.setValueAtTime(f,t);
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,f+slide),t+d);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02);
+  }catch(e){}
+}
+
+/* ---------- helpers ---------- */
+function loop(fn){
+  var id=0,last=0,run=false;
+  function tick(t){
+    if(!run)return;
+    var dt=Math.min(.05,(t-last)/1000||0);last=t;
+    fn(dt);
+    if(run)id=requestAnimationFrame(tick);
+  }
+  return{
+    start:function(){if(run)return;run=true;last=performance.now();id=requestAnimationFrame(tick);},
+    stop:function(){run=false;cancelAnimationFrame(id);}
+  };
+}
+function makeCanvas(field){
+  var cv=document.createElement('canvas');
+  cv.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none';
+  field.appendChild(cv);
+  var ctx=cv.getContext('2d');
+  var o={cv:cv,ctx:ctx,W:1,H:1,fit:function(){
+    var dpr=Math.min(window.devicePixelRatio||1,2);
+    o.W=Math.max(1,field.clientWidth);o.H=Math.max(1,field.clientHeight);
+    cv.width=Math.floor(o.W*dpr);cv.height=Math.floor(o.H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }};
+  o.fit();return o;
+}
+function rr(c,x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+function swipes(el,cb,th,once){
+  var sx=0,sy=0,act=false;
+  function down(e){act=true;sx=e.clientX;sy=e.clientY;}
+  function move(e){
+    if(!act)return;
+    var dx=e.clientX-sx,dy=e.clientY-sy;
+    if(Math.hypot(dx,dy)>=th){
+      cb(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+      if(once)act=false;else{sx=e.clientX;sy=e.clientY;}
+    }
+  }
+  function up(){act=false;}
+  el.addEventListener('pointerdown',down);el.addEventListener('pointermove',move);
+  el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);
+  return function(){
+    el.removeEventListener('pointerdown',down);el.removeEventListener('pointermove',move);
+    el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);
+  };
+}
+function hash(n){var x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);}
+
+/* ================= Neon Snake ================= */
+function makeSnake(field,api){
+  var C=makeCanvas(field),ctx=C.ctx,N=16;
+  var snake,dir,q,food,acc,step,score,t=0;
+  var DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+  function geom(){
+    var s=Math.min(C.W,C.H)-20,cell=Math.max(8,Math.floor(s/N)),w=cell*N;
+    return{cell:cell,w:w,ox:Math.floor((C.W-w)/2),oy:Math.floor((C.H-w)/2)};
+  }
+  function placeFood(){
+    var p;
+    do{p={x:rnd(N),y:rnd(N)};}while(snake.some(function(s){return s.x===p.x&&s.y===p.y;}));
+    food=p;
+  }
+  function reset(){
+    snake=[{x:8,y:8},{x:7,y:8},{x:6,y:8}];dir={x:1,y:0};q=[];score=0;step=.13;acc=0;
+    placeFood();api.score(0);
+  }
+  function turn(name){
+    var d=DIRS[name],last=q.length?q[q.length-1]:dir;
+    if(d[0]===-last.x&&d[1]===-last.y)return;
+    if(d[0]===last.x&&d[1]===last.y)return;
+    if(q.length<2)q.push({x:d[0],y:d[1]});
+  }
+  function die(){
+    L.stop();draw();beep(160,.4,'sawtooth',.06,-100);api.over(score);
+  }
+  function stepOnce(){
+    if(q.length)dir=q.shift();
+    var h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+    if(h.x<0||h.y<0||h.x>=N||h.y>=N||snake.some(function(s){return s.x===h.x&&s.y===h.y;})){die();return false;}
+    snake.unshift(h);
+    if(h.x===food.x&&h.y===food.y){
+      score++;api.score(score);beep(680,.07,'square',.05);
+      step=Math.max(.075,.13-score*.0028);placeFood();
+    }else snake.pop();
+    return true;
+  }
+  function draw(){
+    var g=geom(),i;
+    ctx.fillStyle='#05030b';ctx.fillRect(0,0,C.W,C.H);
+    ctx.save();
+    ctx.strokeStyle='rgba(34,240,255,.10)';ctx.lineWidth=1;ctx.beginPath();
+    for(i=0;i<=N;i++){
+      var x=g.ox+i*g.cell+.5,y=g.oy+i*g.cell+.5;
+      ctx.moveTo(x,g.oy);ctx.lineTo(x,g.oy+g.w);ctx.moveTo(g.ox,y);ctx.lineTo(g.ox+g.w,y);
+    }
+    ctx.stroke();
+    ctx.shadowColor='#22f0ff';ctx.shadowBlur=14;ctx.strokeStyle='#22f0ff';ctx.lineWidth=2;
+    ctx.strokeRect(g.ox-1,g.oy-1,g.w+2,g.w+2);
+    ctx.restore();
+    var fx=g.ox+(food.x+.5)*g.cell,fy=g.oy+(food.y+.5)*g.cell,fr=g.cell*.3*(1+.18*Math.sin(t*7));
+    ctx.save();ctx.shadowColor='#ff2e9a';ctx.shadowBlur=18;ctx.fillStyle='#ff7cc4';
+    ctx.beginPath();ctx.arc(fx,fy,fr,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.save();
+    var len=snake.length;
+    for(i=len-1;i>=0;i--){
+      var s=snake[i],hue=190+(i/len)*100;
+      ctx.shadowColor='hsl('+hue+',100%,60%)';ctx.shadowBlur=10;
+      ctx.fillStyle='hsl('+hue+',100%,'+(i===0?82:60)+'%)';
+      rr(ctx,g.ox+s.x*g.cell+1.5,g.oy+s.y*g.cell+1.5,g.cell-3,g.cell-3,Math.max(3,g.cell*.28));ctx.fill();
+    }
+    ctx.restore();
+    var h=snake[0],cx=g.ox+(h.x+.5)*g.cell,cy=g.oy+(h.y+.5)*g.cell,px=-dir.y,py=dir.x;
+    ctx.fillStyle='#07040f';
+    [-1,1].forEach(function(k){
+      ctx.beginPath();
+      ctx.arc(cx+dir.x*g.cell*.14+px*k*g.cell*.17,cy+dir.y*g.cell*.14+py*k*g.cell*.17,g.cell*.08,0,Math.PI*2);ctx.fill();
+    });
+  }
+  var L=loop(function(dt){
+    t+=dt;acc+=dt;
+    while(acc>=step){acc-=step;if(!stepOnce())return;}
+    draw();
+  });
+  var off=swipes(field,turn,20,false);
+  reset();draw();
+  return{
+    start:function(){reset();L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){L.stop();off();C.cv.remove();}
+  };
+}
+
+/* ================= Glow Merge ================= */
+function makeMerge(field,api){
+  var C=makeCanvas(field),ctx=C.ctx,N=4;
+  var b,fx,fxT=0,score,t=0,done;
+  function colour(v){return'hsl('+((190+Math.log(v)/Math.LN2*28)%360)+',100%,64%)';}
+  function reset(){b=new Array(16).fill(0);fx=new Array(16).fill(0);score=0;done=false;spawn();spawn();fxT=t;api.score(0);}
+  function spawn(){
+    var e=[];b.forEach(function(v,i){if(!v)e.push(i);});
+    if(!e.length)return;
+    var i=e[rnd(e.length)];b[i]=Math.random()<.9?2:4;fx[i]=1;
+  }
+  function slide(line){
+    var a=line.filter(Boolean),out=[],gain=0,merged=[];
+    for(var i=0;i<a.length;i++){
+      if(a[i]===a[i+1]){out.push(a[i]*2);gain+=a[i]*2;merged.push(out.length-1);i++;}
+      else out.push(a[i]);
+    }
+    while(out.length<4)out.push(0);
+    return{out:out,gain:gain,merged:merged};
+  }
+  function canMove(){
+    for(var i=0;i<16;i++){
+      if(!b[i])return true;
+      var x=i%4,y=(i/4)|0;
+      if(x<3&&b[i]===b[i+1])return true;
+      if(y<3&&b[i]===b[i+4])return true;
+    }
+    return false;
+  }
+  function move(dir){
+    if(done)return;
+    var moved=false,gain=0,nb=b.slice(),nf=new Array(16).fill(0);
+    for(var k=0;k<N;k++){
+      var idx=[];
+      for(var j=0;j<N;j++){
+        idx.push(dir==='left'?k*N+j:dir==='right'?k*N+(N-1-j):dir==='up'?j*N+k:(N-1-j)*N+k);
+      }
+      var r=slide(idx.map(function(i){return b[i];}));
+      for(j=0;j<N;j++){if(r.out[j]!==b[idx[j]])moved=true;nb[idx[j]]=r.out[j];}
+      gain+=r.gain;
+      r.merged.forEach(function(j){nf[idx[j]]=2;});
+    }
+    if(!moved)return;
+    b=nb;fx=nf;score+=gain;api.score(score);spawn();fxT=t;
+    beep(gain?520:340,.06,'triangle',.06);
+    if(!canMove()){done=true;L.stop();draw();beep(140,.4,'sawtooth',.06,-90);api.over(score);}
+  }
+  function draw(){
+    ctx.fillStyle='#05030b';ctx.fillRect(0,0,C.W,C.H);
+    var s=Math.min(C.W,C.H)-24,gap=Math.max(8,s*.03),cell=(s-gap*5)/4,ox=(C.W-s)/2,oy=(C.H-s)/2,i;
+    ctx.save();ctx.strokeStyle='#a86bff';ctx.shadowColor='#a86bff';ctx.shadowBlur=14;ctx.lineWidth=2;
+    rr(ctx,ox,oy,s,s,16);ctx.stroke();ctx.restore();
+    for(i=0;i<16;i++){
+      var x=ox+gap+(i%4)*(cell+gap),y=oy+gap+((i/4)|0)*(cell+gap);
+      ctx.fillStyle='rgba(168,107,255,.09)';rr(ctx,x,y,cell,cell,10);ctx.fill();
+    }
+    var k=Math.min(1,(t-fxT)/.16);
+    for(i=0;i<16;i++){
+      var v=b[i];if(!v)continue;
+      var cx=ox+gap+(i%4)*(cell+gap)+cell/2,cy=oy+gap+((i/4)|0)*(cell+gap)+cell/2;
+      var sc=fx[i]===1?.5+.5*k:fx[i]===2?1+.18*(1-k):1,c=colour(v);
+      ctx.save();ctx.translate(cx,cy);ctx.scale(sc,sc);
+      ctx.shadowColor=c;ctx.shadowBlur=16;ctx.lineWidth=3;ctx.strokeStyle=c;ctx.fillStyle='#0c0719';
+      rr(ctx,-cell/2,-cell/2,cell,cell,10);ctx.fill();ctx.stroke();
+      ctx.shadowBlur=10;ctx.fillStyle=c;
+      ctx.font='400 '+Math.round(cell*(v<100?.5:v<1000?.4:.32))+'px "Tilt Neon","Exo 2",sans-serif';
+      ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(v),0,cell*.03);
+      ctx.restore();
+    }
+  }
+  var L=loop(function(dt){t+=dt;draw();});
+  var off=swipes(field,move,26,true);
+  reset();draw();
+  return{
+    start:function(){reset();L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){L.stop();off();C.cv.remove();}
+  };
+}
+
+/* ================= Cat Match ================= */
+function makeMatch(field,api){
+  var wrap=document.createElement('div');wrap.className='mgrid';field.appendChild(wrap);
+  var faces=['😺','😸','😹','😻','😼','🙀','😽','😾'];
+  var first=null,lock=false,pairs=0,misses=0,t0=0,tm=[];
+  function later(fn,ms){tm.push(setTimeout(fn,ms));}
+  function size(){var s=Math.max(120,Math.min(field.clientWidth,field.clientHeight)-16);wrap.style.width=s+'px';wrap.style.height=s+'px';}
+  function build(){
+    tm.forEach(clearTimeout);tm=[];wrap.innerHTML='';first=null;lock=false;pairs=0;misses=0;t0=performance.now();
+    shuffle(faces.concat(faces)).forEach(function(f){
+      var bt=document.createElement('button');bt.type='button';bt.className='mc';bt.setAttribute('aria-label','Card');
+      bt.innerHTML='<span class="in"><span class="bk">🐾</span><span class="fr">'+f+'</span></span>';
+      bt.addEventListener('click',function(){pick(bt,f);});
+      wrap.appendChild(bt);
+    });
+  }
+  function pick(bt,f){
+    if(lock||bt.classList.contains('up')||bt.classList.contains('gone'))return;
+    if(!api.playing())return;
+    bt.classList.add('up');beep(480+rnd(5)*40,.06,'triangle',.06);
+    if(!first){first=bt;first.f=f;return;}
+    var a=first;first=null;lock=true;
+    if(a.f===f){
+      later(function(){
+        a.classList.add('gone');bt.classList.add('gone');pairs++;api.score(pairs*100);
+        beep(784,.12,'triangle',.07);lock=false;
+        if(pairs===8)finish();
+      },350);
+    }else{
+      misses++;
+      later(function(){a.classList.remove('up');bt.classList.remove('up');lock=false;},750);
+    }
+  }
+  function finish(){
+    var secs=(performance.now()-t0)/1000,bonus=Math.max(0,Math.round(600-secs*8-misses*15)),total=pairs*100+bonus;
+    api.score(total);
+    [523,659,784,1047].forEach(function(f,i){later(function(){beep(f,.15,'triangle',.07);},i*120);});
+    api.over(total,{title:'All matched!',text:Math.round(secs)+' seconds, '+misses+' miss'+(misses===1?'':'es')});
+  }
+  build();size();
+  return{
+    start:function(){build();size();},
+    resize:size,
+    destroy:function(){tm.forEach(clearTimeout);tm=[];wrap.remove();}
+  };
+}
+
+/* ================= Cat Dash ================= */
+function makeDash(field,api){
+  var C=makeCanvas(field),ctx=C.ctx;
+  var t=0,speed,dist,py,vy,onG,obs,since,gap,score,running=false,phase=0,stars=[];
+  for(var i=0;i<46;i++)stars.push({x:Math.random(),y:Math.random()*.55,r:Math.random()*1.3+.4});
+  function reset(){
+    var h=C.H;speed=.8;dist=0;py=0;vy=0;onG=true;obs=[];since=0;gap=h*1.4;score=0;t=0;phase=0;api.score(0);
+  }
+  function spawn(){
+    var h=C.H,k=rnd(3),x=C.W+40;
+    if(k===0)obs.push({x:x,w:h*.07,h:h*.085,type:'spike'});
+    else if(k===1)obs.push({x:x,w:h*.065,h:h*.11,type:'block'});
+    else{obs.push({x:x,w:h*.07,h:h*.085,type:'spike'});obs.push({x:x+h*.075,w:h*.07,h:h*.085,type:'spike'});}
+    gap=speed*h*(1+Math.random()*.6)+(k===2?h*.08:0);since=0;
+  }
+  function pxOf(){return Math.max(40,C.W*.18);}
+  function die(){
+    running=false;L.stop();draw();beep(170,.45,'sawtooth',.06,-110);api.over(score);
+  }
+  function update(dt){
+    var h=C.H,gy=h*.82;
+    t+=dt;speed=Math.min(1.5,.8+t*.011);
+    var mv=speed*h*dt;dist+=mv;since+=mv;
+    if(since>=gap)spawn();
+    obs.forEach(function(o){o.x-=mv;});
+    obs=obs.filter(function(o){return o.x+o.w>-20;});
+    if(!onG){vy-=3.6*h*dt;py+=vy*dt;if(py<=0){py=0;vy=0;onG=true;}}
+    phase+=dt*speed*14;
+    var ns=Math.floor(dist/(h*.1));if(ns!==score){score=ns;api.score(score);}
+    var s=h*.1,pl={x:pxOf()+s*.15,y:gy-py-s*.85,w:s*.7,h:s*.8};
+    for(var i=0;i<obs.length;i++){
+      var o=obs[i],sp=o.type==='spike';
+      var ox=o.x+(sp?o.w*.22:0),ow=o.w*(sp?.56:1),oh=o.h*(sp?.75:1),oy=gy-oh;
+      if(pl.x<ox+ow&&pl.x+pl.w>ox&&pl.y<gy&&pl.y+pl.h>oy){die();return;}
+    }
+  }
+  function drawCat(x,y,s,ph,air){
+    ctx.save();ctx.translate(x,y);
+    ctx.lineWidth=Math.max(2,s*.045);ctx.lineJoin='round';ctx.lineCap='round';
+    ctx.strokeStyle='#ff2e9a';ctx.shadowColor='#ff2e9a';ctx.shadowBlur=14;ctx.fillStyle='#14091f';
+    ctx.beginPath();ctx.moveTo(s*.08,-s*.5);ctx.quadraticCurveTo(-s*.25,-s*.55,-s*.2+Math.sin(ph)*s*.06,-s*.95);ctx.stroke();
+    var sw=air?0:Math.sin(ph)*s*.18;
+    [[.18,1],[.3,-1],[.58,-1],[.7,1]].forEach(function(l){
+      ctx.beginPath();ctx.moveTo(s*l[0],-s*.32);ctx.lineTo(s*l[0]+l[1]*sw,-s*(air?.14:.02));ctx.stroke();
+    });
+    ctx.beginPath();ctx.ellipse(s*.42,-s*.46,s*.38,s*.2,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*.66,-s*.76);ctx.lineTo(s*.68,-s*1.02);ctx.lineTo(s*.83,-s*.8);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s*.79,-s*.8);ctx.lineTo(s*.93,-s*1.0);ctx.lineTo(s*.98,-s*.72);ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.arc(s*.8,-s*.62,s*.2,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(s*.87,-s*.65,s*.035,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function draw(){
+    var w=C.W,h=C.H,gy=h*.82,i;
+    var sky=ctx.createLinearGradient(0,0,0,gy);sky.addColorStop(0,'#07040f');sky.addColorStop(.65,'#1a0a3a');sky.addColorStop(1,'#4d1263');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#ffffff';
+    stars.forEach(function(s){ctx.globalAlpha=.35+.4*Math.abs(Math.sin(t*1.5+s.x*20));ctx.beginPath();ctx.arc(s.x*w,s.y*h,s.r,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+    var sr=h*.2,sx=w*.72,sy=gy-sr*.85,sg=ctx.createLinearGradient(0,sy-sr,0,sy+sr);
+    sg.addColorStop(0,'#ffb02e');sg.addColorStop(1,'#ff2e9a');
+    ctx.save();ctx.shadowColor='#ff2e9a';ctx.shadowBlur=40;ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();ctx.restore();
+    var bw=h*.17,sc=dist*.18,off=sc%bw,base=Math.floor(sc/bw),n=Math.ceil(w/bw)+2;
+    for(i=0;i<n;i++){
+      var idx=base+i,r=hash(idx),bh=h*(.12+.22*r),x=i*bw-off;
+      ctx.fillStyle='#0b0620';ctx.fillRect(x,gy-bh,bw-4,bh);
+      ctx.strokeStyle='rgba(168,107,255,.55)';ctx.lineWidth=1;ctx.strokeRect(x+.5,gy-bh+.5,bw-5,bh);
+      ctx.fillStyle=r>.5?'rgba(34,240,255,.65)':'rgba(255,46,154,.6)';
+      var ws=bw*.14;
+      for(var wy=gy-bh+ws;wy<gy-ws*2;wy+=ws*2){
+        for(var wx=0;wx<3;wx++){
+          if(hash(idx*13+wx*7+Math.round(wy))>.55)ctx.fillRect(x+bw*.16+wx*bw*.26,wy,ws,ws);
+        }
+      }
+    }
+    ctx.fillStyle='#0a0418';ctx.fillRect(0,gy,w,h-gy);
+    ctx.save();ctx.strokeStyle='rgba(255,46,154,.45)';ctx.lineWidth=1;ctx.beginPath();
+    var sp=h*.25,go=dist%sp,cx=w/2;
+    for(var gx=-go;gx<w+sp;gx+=sp){ctx.moveTo(gx,gy);ctx.lineTo(cx+(gx-cx)*3.2,h);}
+    ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='#22f0ff';ctx.shadowColor='#22f0ff';ctx.shadowBlur=14;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(w,gy);ctx.stroke();ctx.restore();
+    obs.forEach(function(o){
+      ctx.save();ctx.lineWidth=3;ctx.lineJoin='round';
+      if(o.type==='spike'){
+        ctx.strokeStyle='#b8ff3d';ctx.shadowColor='#b8ff3d';ctx.shadowBlur=14;ctx.fillStyle='#0f1a05';
+        ctx.beginPath();ctx.moveTo(o.x,gy);ctx.lineTo(o.x+o.w/2,gy-o.h);ctx.lineTo(o.x+o.w,gy);ctx.closePath();ctx.fill();ctx.stroke();
+      }else{
+        ctx.strokeStyle='#22f0ff';ctx.shadowColor='#22f0ff';ctx.shadowBlur=14;ctx.fillStyle='#051419';
+        rr(ctx,o.x,gy-o.h,o.w,o.h,4);ctx.fill();ctx.stroke();
+      }
+      ctx.restore();
+    });
+    drawCat(pxOf(),gy-py,h*.1,phase,!onG);
+  }
+  function jump(){
+    if(!running||!onG)return;
+    vy=1.15*C.H;onG=false;beep(420,.12,'square',.04,320);
+  }
+  var L=loop(function(dt){update(dt);if(running)draw();});
+  field.addEventListener('pointerdown',jump);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){running=false;L.stop();field.removeEventListener('pointerdown',jump);C.cv.remove();}
+  };
+}
+
+/* ================= Brick Smash ================= */
+function makeSmash(field,api){
+  var C=makeCanvas(field),ctx=C.ctx,cols=8,rows=5,HUES=[330,280,190,140,60];
+  var M,px,ball={x:0,y:0,vx:0,vy:0},bricks,lives,score,level,stuck,parts=[],t=0,running=false;
+  function metrics(){
+    var W=C.W,H=C.H,m=12,gap=6;
+    M={W:W,H:H,m:m,gap:gap,bw:(W-m*2-gap*(cols-1))/cols,bh:clamp(H*.04,14,26),top:H*.14,
+       pw:Math.max(84,W*.2),ph:14,py:H-Math.max(56,H*.09),br:Math.max(7,Math.min(W,H)*.014)};
+  }
+  function brect(b){return{x:M.m+b.c*(M.bw+M.gap),y:M.top+b.r*(M.bh+M.gap),w:M.bw,h:M.bh};}
+  function build(){bricks=[];for(var r=0;r<rows;r++)for(var c=0;c<cols;c++)bricks.push({c:c,r:r,alive:true,hue:HUES[r]});}
+  function speed(){return Math.min(M.W,M.H)*Math.min(1.7,.95+level*.07);}
+  function park(){stuck=true;ball.vx=0;ball.vy=0;ball.x=px;ball.y=M.py-M.ph/2-M.br-1;}
+  function reset(){
+    metrics();px=M.W/2;lives=3;score=0;level=1;parts=[];build();park();api.score(0);
+  }
+  function launch(){
+    var a=(-90+(Math.random()*50-25))*Math.PI/180,sp=speed();
+    ball.vx=Math.cos(a)*sp;ball.vy=Math.sin(a)*sp;stuck=false;beep(380,.06,'triangle',.05);
+  }
+  function burst(x,y,hue){
+    for(var i=0;i<10;i++){
+      var a=Math.random()*Math.PI*2,s=60+Math.random()*160;
+      parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,life:.5,hue:hue});
+    }
+    if(parts.length>160)parts.splice(0,parts.length-160);
+  }
+  function lose(){running=false;L.stop();draw();beep(150,.45,'sawtooth',.06,-90);api.over(score);}
+  function update(dt){
+    t+=dt;
+    var sp=speed(),n=Math.max(1,Math.ceil(sp*dt/(M.br*.7))),d=dt/n;
+    for(var s=0;s<n;s++){
+      if(stuck){ball.x=px;ball.y=M.py-M.ph/2-M.br-1;break;}
+      ball.x+=ball.vx*d;ball.y+=ball.vy*d;
+      if(ball.x<M.br){ball.x=M.br;ball.vx=Math.abs(ball.vx);}
+      if(ball.x>M.W-M.br){ball.x=M.W-M.br;ball.vx=-Math.abs(ball.vx);}
+      if(ball.y<M.br){ball.y=M.br;ball.vy=Math.abs(ball.vy);}
+      if(ball.vy>0&&ball.y+M.br>=M.py-M.ph/2&&ball.y<M.py+M.ph/2&&Math.abs(ball.x-px)<=M.pw/2+M.br*.6){
+        var hit=clamp((ball.x-px)/(M.pw/2),-1,1),a=hit*62*Math.PI/180;
+        ball.vx=Math.sin(a)*sp;ball.vy=-Math.cos(a)*sp;ball.y=M.py-M.ph/2-M.br;beep(300,.05,'triangle',.06);
+      }
+      for(var i=0;i<bricks.length;i++){
+        var b=bricks[i];if(!b.alive)continue;
+        var r=brect(b),cx=clamp(ball.x,r.x,r.x+r.w),cy=clamp(ball.y,r.y,r.y+r.h),dx=ball.x-cx,dy=ball.y-cy;
+        if(dx*dx+dy*dy<M.br*M.br){
+          b.alive=false;
+          if(Math.abs(dx)>Math.abs(dy))ball.vx=dx>0?Math.abs(ball.vx):-Math.abs(ball.vx);
+          else ball.vy=dy>0?Math.abs(ball.vy):-Math.abs(ball.vy);
+          score+=10*level;api.score(score);burst(r.x+r.w/2,r.y+r.h/2,b.hue);
+          beep(500+(rows-b.r)*70,.06,'square',.04);
+          break;
+        }
+      }
+      if(bricks.every(function(b){return!b.alive;})){
+        level++;build();park();[523,659,784].forEach(function(f,k){setTimeout(function(){beep(f,.14,'triangle',.07);},k*110);});
+        break;
+      }
+      if(ball.y>M.H+M.br*2){
+        lives--;beep(150,.3,'sawtooth',.06,-80);
+        if(lives<=0){lose();return;}
+        park();break;
+      }
+    }
+    parts.forEach(function(p){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=500*dt;p.life-=dt;});
+    parts=parts.filter(function(p){return p.life>0;});
+  }
+  function draw(){
+    ctx.fillStyle='#05030b';ctx.fillRect(0,0,M.W,M.H);
+    bricks.forEach(function(b){
+      if(!b.alive)return;
+      var r=brect(b),c='hsl('+b.hue+',100%,62%)';
+      ctx.save();ctx.shadowColor=c;ctx.shadowBlur=10;ctx.strokeStyle=c;ctx.lineWidth=2;
+      ctx.fillStyle='hsla('+b.hue+',100%,60%,.16)';rr(ctx,r.x,r.y,r.w,r.h,5);ctx.fill();ctx.stroke();ctx.restore();
+    });
+    parts.forEach(function(p){
+      ctx.globalAlpha=clamp(p.life*2,0,1);ctx.fillStyle='hsl('+p.hue+',100%,65%)';ctx.fillRect(p.x-2,p.y-2,4,4);
+    });
+    ctx.globalAlpha=1;
+    ctx.save();ctx.shadowColor='#b8ff3d';ctx.shadowBlur=18;ctx.fillStyle='#b8ff3d';
+    rr(ctx,px-M.pw/2,M.py-M.ph/2,M.pw,M.ph,7);ctx.fill();ctx.restore();
+    ctx.save();ctx.shadowColor='#ffffff';ctx.shadowBlur=16;ctx.fillStyle='#ffffff';
+    ctx.beginPath();ctx.arc(ball.x,ball.y,M.br,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.fillStyle='#a899d4';ctx.font='700 13px "Exo 2",sans-serif';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('LEVEL '+level,14,20);
+    for(var i=0;i<lives;i++){
+      ctx.save();ctx.shadowColor='#ff2e9a';ctx.shadowBlur=10;ctx.fillStyle='#ff2e9a';
+      ctx.beginPath();ctx.arc(M.W-18-i*18,20,5,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+    if(stuck&&running){
+      ctx.fillStyle='rgba(243,234,255,.75)';ctx.textAlign='center';ctx.font='700 14px "Exo 2",sans-serif';
+      ctx.fillText('LIFT YOUR FINGER TO LAUNCH',M.W/2,M.py-48);
+    }
+  }
+  function setPx(e){
+    var r=field.getBoundingClientRect();px=clamp(e.clientX-r.left,M.pw/2,M.W-M.pw/2);
+    if(!running)draw();
+  }
+  function up(){if(running&&stuck)launch();}
+  var L=loop(function(dt){update(dt);if(running)draw();});
+  field.addEventListener('pointerdown',setPx);field.addEventListener('pointermove',setPx);field.addEventListener('pointerup',up);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();metrics();px=clamp(px,M.pw/2,M.W-M.pw/2);park();draw();},
+    destroy:function(){
+      running=false;L.stop();
+      field.removeEventListener('pointerdown',setPx);field.removeEventListener('pointermove',setPx);field.removeEventListener('pointerup',up);
+      C.cv.remove();
+    }
+  };
+}
+
+/* ================= Echo ================= */
+function makeEcho(field,api){
+  var status=document.createElement('div');status.className='estatus';field.appendChild(status);
+  var wrap=document.createElement('div');wrap.className='pads';field.appendChild(wrap);
+  var COLS=['#22f0ff','#b8ff3d','#ff2e9a','#ffb02e'],FREQ=[330,415,523,659];
+  var pads=[],seq=[],idx=0,listening=false,tm=[];
+  function later(fn,ms){tm.push(setTimeout(fn,ms));}
+  function size(){var s=Math.max(140,Math.min(field.clientWidth,field.clientHeight-70)-16);wrap.style.width=s+'px';wrap.style.height=s+'px';}
+  function flash(p,ms){
+    pads[p].classList.add('lit');beep(FREQ[p],ms/1000,'triangle',.09);
+    later(function(){pads[p].classList.remove('lit');},ms);
+  }
+  function play(){
+    listening=false;status.textContent='Watch';
+    var i=0,gap=Math.max(280,560-seq.length*20);
+    function go(){
+      if(i>=seq.length){idx=0;listening=true;status.textContent='Your turn';return;}
+      flash(seq[i],gap*.65);i++;later(go,gap);
+    }
+    later(go,700);
+  }
+  function addStep(){seq.push(rnd(4));play();}
+  function press(p){
+    if(!listening)return;
+    flash(p,180);
+    if(p===seq[idx]){
+      idx++;
+      if(idx===seq.length){
+        listening=false;api.score(seq.length);status.textContent='Nice!';later(addStep,850);
+      }
+    }else{
+      listening=false;status.textContent='Missed';beep(130,.45,'sawtooth',.07,-70);
+      later(function(){api.over(Math.max(0,seq.length-1));},650);
+    }
+  }
+  COLS.forEach(function(c,i){
+    var b=document.createElement('button');b.type='button';b.className='pad';b.style.setProperty('--p',c);
+    b.setAttribute('aria-label','Pad '+(i+1));
+    b.addEventListener('pointerdown',function(e){e.preventDefault();press(i);});
+    wrap.appendChild(b);pads.push(b);
+  });
+  status.textContent='Ready';size();
+  return{
+    start:function(){tm.forEach(clearTimeout);tm=[];seq=[];idx=0;api.score(0);size();addStep();},
+    resize:size,
+    destroy:function(){tm.forEach(clearTimeout);tm=[];status.remove();wrap.remove();}
+  };
+}
+
+/* ================= Jetpack Cat ================= */
+function drawCatHead(ctx,x,y,r,tilt,flame){
+  ctx.save();ctx.translate(x,y);ctx.rotate(tilt);
+  ctx.lineWidth=Math.max(2,r*.14);ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.strokeStyle='#4da3ff';ctx.shadowColor='#4da3ff';ctx.shadowBlur=14;ctx.fillStyle='#0b1630';
+  if(flame>0){
+    ctx.save();ctx.shadowColor='#ffb02e';ctx.shadowBlur=18;ctx.fillStyle='#ffb02e';
+    ctx.beginPath();ctx.moveTo(-r*.9,-r*.3);ctx.lineTo(-r*(1.7+flame*5),0);ctx.lineTo(-r*.9,r*.3);ctx.closePath();ctx.fill();ctx.restore();
+  }
+  ctx.beginPath();ctx.moveTo(-r*.85,-r*.35);ctx.lineTo(-r*.7,-r*1.45);ctx.lineTo(-r*.05,-r*.9);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(r*.05,-r*.9);ctx.lineTo(r*.7,-r*1.45);ctx.lineTo(r*.85,-r*.35);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;ctx.fillStyle='#ffffff';
+  ctx.beginPath();ctx.arc(-r*.35,-r*.1,r*.14,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(r*.35,-r*.1,r*.14,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function makeJet(field,api){
+  var C=makeCanvas(field),ctx=C.ctx;
+  var y,vy,pipes,since,score,lastCy,flame,t=0,running=false,stars=[];
+  for(var s=0;s<40;s++)stars.push({x:Math.random(),y:Math.random(),r:Math.random()*1.3+.4});
+  function px(){return Math.max(60,C.W*.25);}
+  function addPipe(x){
+    var h=C.H;lastCy=clamp(lastCy+(Math.random()-.5)*h*.5,h*.27,h*.7);
+    pipes.push({x:x,w:h*.13,cy:lastCy,gap:h*.3,passed:false});
+  }
+  function reset(){var h=C.H;y=h*.5;vy=0;pipes=[];since=0;score=0;lastCy=h*.5;flame=0;t=0;addPipe(C.W*1.1);api.score(0);}
+  function die(){running=false;L.stop();draw();beep(150,.45,'sawtooth',.06,-100);api.over(score);}
+  function update(dt){
+    var h=C.H,r=h*.035;t+=dt;
+    vy+=2.4*h*dt;y+=vy*dt;flame=Math.max(0,flame-dt);
+    var mv=h*.55*(1+Math.min(.5,score*.02))*dt;since+=mv;
+    pipes.forEach(function(p){p.x-=mv;});
+    if(since>=h*.95){since=0;addPipe(C.W+40);}
+    pipes=pipes.filter(function(p){return p.x+p.w>-10;});
+    if(y-r<0){y=r;vy=Math.max(0,vy);}
+    if(y+r>h*.94){die();return;}
+    for(var i=0;i<pipes.length;i++){
+      var p=pipes[i];
+      if(px()+r>p.x&&px()-r<p.x+p.w&&(y-r<p.cy-p.gap/2||y+r>p.cy+p.gap/2)){die();return;}
+      if(!p.passed&&p.x+p.w<px()-r){p.passed=true;score++;api.score(score);beep(760,.06,'square',.04);}
+    }
+  }
+  function draw(){
+    var w=C.W,h=C.H,r=h*.035;
+    var sky=ctx.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#05030b');sky.addColorStop(1,'#14123a');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#ffffff';
+    stars.forEach(function(st){ctx.globalAlpha=.3+.4*Math.abs(Math.sin(t+st.x*30));ctx.beginPath();ctx.arc(st.x*w,st.y*h*.9,st.r,0,Math.PI*2);ctx.fill();});
+    ctx.globalAlpha=1;
+    pipes.forEach(function(p){
+      var top=p.cy-p.gap/2,bot=p.cy+p.gap/2;
+      ctx.save();ctx.shadowColor='#b8ff3d';ctx.shadowBlur=14;ctx.strokeStyle='#b8ff3d';ctx.lineWidth=3;ctx.fillStyle='rgba(184,255,61,.1)';
+      rr(ctx,p.x,-20,p.w,top+20,6);ctx.fill();ctx.stroke();
+      rr(ctx,p.x,bot,p.w,h-bot+20,6);ctx.fill();ctx.stroke();ctx.restore();
+    });
+    ctx.save();ctx.strokeStyle='#4da3ff';ctx.shadowColor='#4da3ff';ctx.shadowBlur=14;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,h*.94);ctx.lineTo(w,h*.94);ctx.stroke();ctx.restore();
+    drawCatHead(ctx,px(),y,r,clamp(vy/(h*1.4),-.45,.8),flame);
+  }
+  function flap(){if(!running)return;vy=-.78*C.H;flame=.18;beep(500,.07,'square',.04,200);}
+  var L=loop(function(dt){update(dt);if(running)draw();});
+  field.addEventListener('pointerdown',flap);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){running=false;L.stop();field.removeEventListener('pointerdown',flap);C.cv.remove();}
+  };
+}
+
+/* ================= Stack Up ================= */
+function makeStack(field,api){
+  var C=makeCanvas(field),ctx=C.ctx;
+  var layers,cur,dirv,fromLeft,speed,cam,score,debris,flash,t=0,running=false;
+  function bh(){return Math.max(18,C.H*.055);}
+  function baseW(){return Math.min(C.W*.5,360);}
+  function colour(i){return'hsl('+((190+i*11)%360)+',100%,62%)';}
+  function newBlock(){
+    var top=layers[layers.length-1];
+    cur={x:fromLeft?0:C.W-top.w,w:top.w};dirv=fromLeft?1:-1;fromLeft=!fromLeft;
+    speed=C.W*Math.min(1.2,.42+layers.length*.014);
+  }
+  function reset(){
+    var w=baseW();layers=[{x:(C.W-w)/2,w:w}];score=0;debris=[];cam=0;flash=0;fromLeft=true;newBlock();api.score(0);
+  }
+  function drop(){
+    if(!running)return;
+    var top=layers[layers.length-1],l=Math.max(cur.x,top.x),r=Math.min(cur.x+cur.w,top.x+top.w),ov=r-l,wy=(layers.length+1)*bh();
+    if(ov<=2){
+      debris.push({x:cur.x,w:cur.w,wy:wy,fall:0,vy:0,i:layers.length});
+      running=false;beep(150,.4,'sawtooth',.06,-90);api.over(score);return;
+    }
+    if(Math.abs(cur.x-top.x)<6){cur.x=top.x;cur.w=top.w;flash=.35;beep(988,.12,'triangle',.07);}
+    else{
+      if(cur.x<top.x)debris.push({x:cur.x,w:top.x-cur.x,wy:wy,fall:0,vy:0,i:layers.length});
+      else debris.push({x:top.x+top.w,w:cur.x+cur.w-(top.x+top.w),wy:wy,fall:0,vy:0,i:layers.length});
+      cur.x=l;cur.w=ov;beep(440+Math.min(500,layers.length*18),.08,'triangle',.06);
+    }
+    layers.push({x:cur.x,w:cur.w});score++;api.score(score);newBlock();
+  }
+  function update(dt){
+    t+=dt;flash=Math.max(0,flash-dt);
+    if(running){
+      cur.x+=dirv*speed*dt;
+      if(cur.x<=0){cur.x=0;dirv=1;}
+      if(cur.x+cur.w>=C.W){cur.x=C.W-cur.w;dirv=-1;}
+    }
+    var target=Math.max(0,layers.length*bh()-C.H*.45);cam+=(target-cam)*Math.min(1,dt*5);
+    debris.forEach(function(d){d.vy+=2.5*C.H*dt;d.fall+=d.vy*dt;});
+    debris=debris.filter(function(d){return d.fall<C.H*1.5;});
+  }
+  function yTop(wy){return C.H*.86-wy+cam;}
+  function block(x,w,i,glow){
+    var y=yTop((i+1)*bh()),c=colour(i);
+    ctx.save();ctx.shadowColor=c;ctx.shadowBlur=glow?24:12;ctx.strokeStyle=c;ctx.lineWidth=glow?4:3;ctx.fillStyle='rgba(8,4,18,.92)';
+    rr(ctx,x,y,w,bh()-3,5);ctx.fill();ctx.stroke();ctx.restore();
+  }
+  function draw(){
+    var g=ctx.createLinearGradient(0,0,0,C.H);g.addColorStop(0,'#05030b');g.addColorStop(1,'#1a0d33');
+    ctx.fillStyle=g;ctx.fillRect(0,0,C.W,C.H);
+    layers.forEach(function(l,i){block(l.x,l.w,i,false);});
+    block(cur.x,cur.w,layers.length,flash>0);
+    debris.forEach(function(d){
+      var c=colour(d.i);
+      ctx.save();ctx.globalAlpha=clamp(1-d.fall/(C.H*.8),0,1);ctx.strokeStyle=c;ctx.shadowColor=c;ctx.shadowBlur=10;ctx.lineWidth=3;ctx.fillStyle='rgba(8,4,18,.8)';
+      rr(ctx,d.x,yTop(d.wy)+d.fall,d.w,bh()-3,5);ctx.fill();ctx.stroke();ctx.restore();
+    });
+  }
+  var L=loop(function(dt){update(dt);draw();});
+  field.addEventListener('pointerdown',drop);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){running=false;L.stop();field.removeEventListener('pointerdown',drop);C.cv.remove();}
+  };
+}
+
+/* ================= Fish Slash ================= */
+function segDist(px,py,ax,ay,bx,by){
+  var dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy,k=l?clamp(((px-ax)*dx+(py-ay)*dy)/l,0,1):0;
+  return Math.hypot(px-(ax+k*dx),py-(ay+k*dy));
+}
+function drawFish(ctx,x,y,r,rot,hue,half){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  if(half){ctx.beginPath();ctx.rect(half<0?-r*2:0,-r*2,r*2,r*4);ctx.clip();}
+  var c='hsl('+hue+',100%,62%)';
+  ctx.strokeStyle=c;ctx.shadowColor=c;ctx.shadowBlur=14;ctx.lineWidth=Math.max(2,r*.1);ctx.lineJoin='round';ctx.fillStyle='#0b0618';
+  ctx.beginPath();ctx.ellipse(0,0,r,r*.62,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-r*.85,0);ctx.lineTo(-r*1.5,-r*.5);ctx.lineTo(-r*1.5,r*.5);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;ctx.fillStyle=c;ctx.beginPath();ctx.arc(r*.5,-r*.12,r*.08,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function drawUrchin(ctx,x,y,r,rot){
+  ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+  ctx.strokeStyle='#ff4d5e';ctx.shadowColor='#ff4d5e';ctx.shadowBlur=16;ctx.lineWidth=Math.max(2,r*.1);ctx.lineCap='round';ctx.fillStyle='#1a0610';
+  ctx.beginPath();
+  for(var i=0;i<12;i++){var a=i/12*Math.PI*2;ctx.moveTo(Math.cos(a)*r*.6,Math.sin(a)*r*.6);ctx.lineTo(Math.cos(a)*r*1.05,Math.sin(a)*r*1.05);}
+  ctx.stroke();
+  ctx.beginPath();ctx.arc(0,0,r*.62,0,Math.PI*2);ctx.fill();ctx.stroke();
+  ctx.shadowBlur=0;ctx.fillStyle='#ff4d5e';
+  ctx.beginPath();ctx.arc(-r*.2,-r*.08,r*.07,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(r*.2,-r*.08,r*.07,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
+function makeSlash(field,api){
+  var C=makeCanvas(field),ctx=C.ctx;
+  var objs=[],halves=[],parts=[],trail=[],down=false,lives=3,score=0,spawnT=0,t=0,running=false,HUES=[20,160,190,300,50];
+  function reset(){objs=[];halves=[];parts=[];trail=[];down=false;lives=3;score=0;spawnT=.5;t=0;api.score(0);}
+  function launch(){
+    var h=C.H,w=C.W,g=1.1*h,u=Math.random()<Math.min(.3,.14+t*.002),r=h*(u?.055:.05);
+    var x0=w*(.15+Math.random()*.7),apex=h*(.5+Math.random()*.35),vy=-Math.sqrt(2*g*apex),tx=w*(.2+Math.random()*.6),tt=-vy/g;
+    objs.push({x:x0,y:h+r,vx:(tx-x0)/tt,vy:vy,r:r,type:u?'u':'f',rot:Math.random()*6,vr:(Math.random()-.5)*6,hue:HUES[rnd(HUES.length)]});
+  }
+  function burst(x,y,c,n){
+    for(var i=0;i<n;i++){var a=Math.random()*Math.PI*2,s=80+Math.random()*220;parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-60,life:.6,c:c});}
+  }
+  function finish(){running=false;draw();api.over(score);}
+  function cut(i){
+    var o=objs[i];objs.splice(i,1);
+    if(o.type==='u'){burst(o.x,o.y,'#ff4d5e',30);beep(120,.5,'sawtooth',.07,-70);finish();return;}
+    score++;api.score(score);beep(700+rnd(300),.07,'square',.05);
+    burst(o.x,o.y,'hsl('+o.hue+',100%,62%)',14);
+    halves.push({x:o.x,y:o.y,vx:o.vx-90,vy:o.vy,r:o.r,rot:o.rot,vr:-3,hue:o.hue,half:-1,life:1});
+    halves.push({x:o.x,y:o.y,vx:o.vx+90,vy:o.vy,r:o.r,rot:o.rot,vr:3,hue:o.hue,half:1,life:1});
+  }
+  function slice(ax,ay,bx,by){
+    for(var i=objs.length-1;i>=0;i--){
+      var o=objs[i];
+      if(segDist(o.x,o.y,ax,ay,bx,by)<o.r*1.1){cut(i);if(!running)return;}
+    }
+  }
+  function update(dt){
+    var h=C.H,g=1.1*h;
+    if(running){
+      t+=dt;spawnT-=dt;
+      if(spawnT<=0){
+        var n=1+rnd(Math.min(3,1+Math.floor(t/25)));
+        for(var k=0;k<n;k++)launch();
+        spawnT=Math.max(.55,1.3-t*.01)+Math.random()*.4;
+      }
+      for(var i=objs.length-1;i>=0;i--){
+        var o=objs[i];o.vy+=g*dt;o.x+=o.vx*dt;o.y+=o.vy*dt;o.rot+=o.vr*dt;
+        if(o.vy>0&&o.y>h+o.r*2){
+          objs.splice(i,1);
+          if(o.type==='f'){lives--;beep(150,.2,'sawtooth',.05,-60);if(lives<=0){finish();break;}}
+        }
+      }
+    }
+    halves.forEach(function(p){p.vy+=g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vr*dt;p.life-=dt*.8;});
+    halves=halves.filter(function(p){return p.life>0&&p.y<h+p.r*3;});
+    parts.forEach(function(p){p.vy+=500*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;});
+    parts=parts.filter(function(p){return p.life>0;});
+    while(trail.length&&t-trail[0].t>.25)trail.shift();
+  }
+  function draw(){
+    var w=C.W,h=C.H;
+    var bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#05030b');bg.addColorStop(1,'#12072a');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+    objs.forEach(function(o){if(o.type==='u')drawUrchin(ctx,o.x,o.y,o.r,o.rot);else drawFish(ctx,o.x,o.y,o.r,o.rot,o.hue,0);});
+    halves.forEach(function(p){ctx.save();ctx.globalAlpha=clamp(p.life,0,1);drawFish(ctx,p.x,p.y,p.r,p.rot,p.hue,p.half);ctx.restore();});
+    parts.forEach(function(p){ctx.globalAlpha=clamp(p.life*2,0,1);ctx.fillStyle=p.c;ctx.fillRect(p.x-2,p.y-2,4,4);});
+    ctx.globalAlpha=1;
+    ctx.save();ctx.lineCap='round';
+    for(var k=1;k<trail.length;k++){
+      var a=trail[k-1],b=trail[k],al=1-(t-b.t)/.25;
+      if(al<=0)continue;
+      ctx.strokeStyle='rgba(255,255,255,'+al+')';ctx.shadowColor='#ff8a3d';ctx.shadowBlur=16;ctx.lineWidth=2+6*al;
+      ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+    }
+    ctx.restore();
+    for(var i=0;i<lives;i++){
+      ctx.save();ctx.shadowColor='#ff8a3d';ctx.shadowBlur=10;ctx.fillStyle='#ff8a3d';
+      ctx.beginPath();ctx.arc(w-18-i*18,20,5,0,Math.PI*2);ctx.fill();ctx.restore();
+    }
+  }
+  function pos(e){var r=field.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top};}
+  function dn(e){down=true;var p=pos(e);trail=[{x:p.x,y:p.y,t:t}];}
+  function mv(e){
+    if(!down)return;
+    var p=pos(e),last=trail[trail.length-1];
+    trail.push({x:p.x,y:p.y,t:t});
+    if(last&&running)slice(last.x,last.y,p.x,p.y);
+  }
+  function upf(){down=false;}
+  var L=loop(function(dt){update(dt);draw();});
+  field.addEventListener('pointerdown',dn);field.addEventListener('pointermove',mv);
+  field.addEventListener('pointerup',upf);field.addEventListener('pointercancel',upf);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){
+      running=false;L.stop();
+      field.removeEventListener('pointerdown',dn);field.removeEventListener('pointermove',mv);
+      field.removeEventListener('pointerup',upf);field.removeEventListener('pointercancel',upf);
+      C.cv.remove();
+    }
+  };
+}
+
+/* ================= Mouse Pop ================= */
+function makeMouse(field,api){
+  var status=document.createElement('div');status.className='estatus';field.appendChild(status);
+  var wrap=document.createElement('div');wrap.className='hgrid';field.appendChild(wrap);
+  var holes=[],score=0,left=30,spawnT=0,t=0,running=false;
+  function size(){var s=Math.max(150,Math.min(field.clientWidth,field.clientHeight-70)-16);wrap.style.width=s+'px';wrap.style.height=s+'px';}
+  function hide(h){h.up=false;h.el.classList.remove('up');}
+  function show(h){
+    var dog=Math.random()<.18;
+    h.up=true;h.t=0;h.type=dog?'dog':'mouse';h.dur=Math.max(.5,1-t*.012)*(dog?1.1:1);
+    h.m.textContent=dog?'🐶':'🐭';h.el.classList.add('up');
+  }
+  function whack(h){
+    if(!running||!h.up)return;
+    hide(h);
+    if(h.type==='mouse'){score++;beep(700+rnd(200),.06,'square',.05);}
+    else{score=Math.max(0,score-2);beep(120,.3,'sawtooth',.06,-60);}
+    api.score(score);
+  }
+  for(var i=0;i<9;i++){
+    (function(n){
+      var b=document.createElement('button');b.type='button';b.className='hole';b.innerHTML='<span class="hm"></span>';
+      b.setAttribute('aria-label','Hole '+(n+1));
+      var h={el:b,m:b.firstChild,up:false,t:0,dur:1,type:'mouse'};
+      b.addEventListener('pointerdown',function(e){e.preventDefault();whack(h);});
+      wrap.appendChild(b);holes.push(h);
+    })(i);
+  }
+  function reset(){holes.forEach(hide);score=0;left=30;spawnT=.4;t=0;status.textContent='30s';api.score(0);}
+  var L=loop(function(dt){
+    if(!running)return;
+    t+=dt;left-=dt;status.textContent=Math.max(0,Math.ceil(left))+'s';
+    spawnT-=dt;
+    if(spawnT<=0){
+      var free=holes.filter(function(h){return!h.up;}),upN=holes.length-free.length;
+      if(free.length&&upN<3)show(free[rnd(free.length)]);
+      spawnT=Math.max(.3,.7-t*.008)*(.6+Math.random()*.6);
+    }
+    holes.forEach(function(h){if(h.up){h.t+=dt;if(h.t>h.dur)hide(h);}});
+    if(left<=0){running=false;L.stop();holes.forEach(hide);status.textContent='Time!';api.over(score);}
+  });
+  size();reset();
+  return{
+    start:function(){reset();size();running=true;L.start();},
+    resize:size,
+    destroy:function(){running=false;L.stop();status.remove();wrap.remove();}
+  };
+}
+
+/* ================= Fish Rush ================= */
+function makeRush(field,api){
+  var root=document.createElement('div');root.className='rush';field.appendChild(root);
+  root.innerHTML='<div class="rleft"><div class="rtime"></div><div class="rwallet"><b>0</b> fish</div><div class="rrate"></div>'+
+    '<button class="bigfish" type="button" aria-label="Catch fish">🐟</button></div><div class="rshop"></div>';
+  var tEl=root.querySelector('.rtime'),wEl=root.querySelector('.rwallet b'),rEl=root.querySelector('.rrate'),
+      fish=root.querySelector('.bigfish'),shop=root.querySelector('.rshop');
+  var UP=[
+    {name:'Better Rod',desc:'+1 per tap',base:15,grow:1.5,tap:1,sec:0,n:0},
+    {name:'Kitten Helper',desc:'+1 per second',base:40,grow:1.35,tap:0,sec:1,n:0},
+    {name:'Fish Boat',desc:'+6 per second',base:220,grow:1.4,tap:0,sec:6,n:0},
+    {name:'Cat Cafe',desc:'+30 per second',base:1200,grow:1.45,tap:0,sec:30,n:0}
+  ];
+  var wallet=0,total=0,left=90,perTap=1,perSec=0,running=false,btns=[],lastKey='',lastScore=-1;
+  function fmt(n){n=Math.floor(n);return n>=10000?(n/1000).toFixed(1)+'k':String(n);}
+  function cost(u){return Math.round(u.base*Math.pow(u.grow,u.n));}
+  function recalc(){perTap=1;perSec=0;UP.forEach(function(u){perTap+=u.tap*u.n;perSec+=u.sec*u.n;});}
+  function ui(){
+    tEl.textContent=Math.max(0,Math.ceil(left))+'s left';
+    wEl.textContent=fmt(wallet);
+    rEl.textContent=perTap+' per tap · '+perSec+' per sec';
+    UP.forEach(function(u,i){
+      var b=btns[i],c=cost(u);
+      b.querySelector('.uc').textContent=fmt(c)+' fish · owned '+u.n;
+      b.classList.toggle('poor',wallet<c);
+    });
+  }
+  UP.forEach(function(u,i){
+    var b=document.createElement('button');b.type='button';b.className='upg';
+    b.innerHTML='<span class="un">'+u.name+'</span><span class="ud">'+u.desc+'</span><span class="uc"></span>';
+    b.addEventListener('click',function(){
+      if(!running)return;
+      var c=cost(u);
+      if(wallet<c){beep(130,.12,'sawtooth',.05);return;}
+      wallet-=c;u.n++;recalc();beep(600+i*120,.1,'triangle',.07);lastKey='';
+    });
+    shop.appendChild(b);btns.push(b);
+  });
+  fish.addEventListener('pointerdown',function(e){
+    if(!running)return;
+    wallet+=perTap;total+=perTap;beep(520+rnd(200),.04,'square',.04);
+    var r=root.getBoundingClientRect(),p=document.createElement('span');
+    p.className='pop';p.textContent='+'+perTap;p.style.left=(e.clientX-r.left-12)+'px';p.style.top=(e.clientY-r.top-30)+'px';
+    root.appendChild(p);setTimeout(function(){p.remove();},700);
+  });
+  function reset(){
+    wallet=0;total=0;left=90;UP.forEach(function(u){u.n=0;});recalc();lastKey='';lastScore=-1;api.score(0);ui();
+  }
+  var L=loop(function(dt){
+    if(!running)return;
+    left-=dt;var inc=perSec*dt;wallet+=inc;total+=inc;
+    var sc=Math.floor(total);if(sc!==lastScore){lastScore=sc;api.score(sc);}
+    var key=Math.floor(wallet)+'|'+Math.ceil(left)+'|'+perSec;
+    if(key!==lastKey){lastKey=key;ui();}
+    if(left<=0){
+      running=false;L.stop();ui();
+      api.over(Math.floor(total),{title:"Time's up!",text:'You caught '+fmt(total)+' fish.'});
+    }
+  });
+  reset();
+  return{
+    start:function(){reset();running=true;L.start();},
+    destroy:function(){running=false;L.stop();root.remove();}
+  };
+}
+
+/* ================= Neon Drop ================= */
+function makeDrop(field,api){
+  var C=makeCanvas(field),ctx=C.ctx;
+  var bx,tx,dist,speed,rows,score,t,spacing,running=false;
+  function furthest(){var m=0;rows.forEach(function(r){if(r.z>m)m=r.z;});return m;}
+  function addRow(z){
+    var k=rnd(3),it=[],w;
+    if(k===0){
+      w=.5+Math.random()*.3;it.push({x:(Math.random()*2-1)*(1-w/2),w:w});rows.push({z:z,it:it});
+    }else if(k===1){
+      var gw=Math.max(.5,.7-t*.004),gx=(Math.random()*2-1)*(1-gw/2),lw=(gx-gw/2)+1,rw=1-(gx+gw/2);
+      if(lw>.05)it.push({x:-1+lw/2,w:lw});
+      if(rw>.05)it.push({x:1-rw/2,w:rw});
+      rows.push({z:z,it:it});
+    }else{
+      rows.push({z:z,it:[{x:-.55,w:.9}]});rows.push({z:z+6.5,it:[{x:.55,w:.9}]});
+    }
+  }
+  function reset(){bx=0;tx=0;dist=0;speed=9;rows=[];score=0;t=0;spacing=11;addRow(32);api.score(0);}
+  function die(){running=false;L.stop();draw();beep(150,.5,'sawtooth',.07,-100);api.over(score);}
+  function update(dt){
+    t+=dt;speed=Math.min(24,9+t*.18);spacing=Math.max(7.5,11-t*.05);
+    var mv=speed*dt;dist+=mv;bx+=(tx-bx)*Math.min(1,dt*10);
+    rows.forEach(function(r){r.z-=mv;});
+    rows=rows.filter(function(r){return r.z>-3;});
+    while(furthest()<60)addRow(Math.max(furthest(),32)+spacing);
+    var ns=Math.floor(dist/3);if(ns!==score){score=ns;api.score(score);}
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];
+      if(r.z>-.35&&r.z<.35){
+        for(var j=0;j<r.it.length;j++){
+          if(Math.abs(bx-r.it[j].x)<r.it[j].w/2+.09){die();return;}
+        }
+      }
+    }
+  }
+  function proj(z){return 1/(1+Math.max(z,-.8)*.16);}
+  function draw(){
+    var w=C.W,h=C.H,cx=w/2,hz=h*.3,gy=h*.8,hw0=Math.min(w*.36,h*.6);
+    function Y(z){return hz+(gy-hz)*proj(z);}
+    var sky=ctx.createLinearGradient(0,0,0,hz+10);sky.addColorStop(0,'#05030b');sky.addColorStop(1,'#35125c');
+    ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+    ctx.save();ctx.shadowColor='#ff2e9a';ctx.shadowBlur=40;
+    var sg=ctx.createLinearGradient(0,hz-h*.14,0,hz);sg.addColorStop(0,'#ffb02e');sg.addColorStop(1,'#ff2e9a');
+    ctx.fillStyle=sg;ctx.beginPath();ctx.arc(cx,hz,h*.14,Math.PI,0);ctx.fill();ctx.restore();
+    ctx.fillStyle='#07030f';ctx.fillRect(0,hz,w,h-hz);
+    var sf=proj(60),sn=proj(-.8),yf=Y(60),yn=Y(-.8);
+    ctx.fillStyle='#0d0722';
+    ctx.beginPath();ctx.moveTo(cx-hw0*sf,yf);ctx.lineTo(cx+hw0*sf,yf);ctx.lineTo(cx+hw0*sn,yn);ctx.lineTo(cx-hw0*sn,yn);ctx.closePath();ctx.fill();
+    ctx.save();ctx.strokeStyle='#8f7bff';ctx.shadowColor='#8f7bff';ctx.shadowBlur=14;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(cx-hw0*sf,yf);ctx.lineTo(cx-hw0*sn,yn);ctx.moveTo(cx+hw0*sf,yf);ctx.lineTo(cx+hw0*sn,yn);ctx.stroke();ctx.restore();
+    ctx.save();ctx.strokeStyle='#8f7bff';ctx.lineWidth=1.5;
+    for(var k=0;k<18;k++){
+      var z=k*4-(dist%4);if(z>60||z<-.8)continue;
+      var s=proj(z),y=Y(z);ctx.globalAlpha=.15+.5*s;
+      ctx.beginPath();ctx.moveTo(cx-hw0*s,y);ctx.lineTo(cx+hw0*s,y);ctx.stroke();
+    }
+    ctx.restore();
+    rows.slice().sort(function(a,b){return b.z-a.z;}).forEach(function(r){
+      if(r.z<-.7)return;
+      var s1=proj(r.z),s2=proj(r.z+.7),hw1=hw0*s1,hw2=hw0*s2,y1=Y(r.z),y2=Y(r.z+.7),g1=hw1*.4,g2=hw2*.4;
+      ctx.save();ctx.globalAlpha=r.z>45?clamp((60-r.z)/15,0,1):1;
+      ctx.strokeStyle='#ff2e9a';ctx.shadowColor='#ff2e9a';ctx.shadowBlur=12;ctx.lineWidth=2;
+      r.it.forEach(function(it){
+        var l1=cx+(it.x-it.w/2)*hw1,r1=cx+(it.x+it.w/2)*hw1,l2=cx+(it.x-it.w/2)*hw2,r2=cx+(it.x+it.w/2)*hw2;
+        ctx.fillStyle='rgba(255,46,154,.28)';
+        ctx.beginPath();ctx.moveTo(l1,y1-g1);ctx.lineTo(r1,y1-g1);ctx.lineTo(r2,y2-g2);ctx.lineTo(l2,y2-g2);ctx.closePath();ctx.fill();ctx.stroke();
+        ctx.fillStyle='rgba(20,6,30,.96)';ctx.fillRect(l1,y1-g1,r1-l1,g1);ctx.strokeRect(l1,y1-g1,r1-l1,g1);
+      });
+      ctx.restore();
+    });
+    var br=hw0*.09,bxp=cx+bx*hw0;
+    ctx.fillStyle='rgba(143,123,255,.35)';ctx.beginPath();ctx.ellipse(bxp,gy,br*1.1,br*.35,0,0,Math.PI*2);ctx.fill();
+    ctx.save();ctx.shadowColor='#8f7bff';ctx.shadowBlur=22;
+    var bg=ctx.createRadialGradient(bxp-br*.3,gy-br*1.3,br*.1,bxp,gy-br,br);bg.addColorStop(0,'#ffffff');bg.addColorStop(1,'#8f7bff');
+    ctx.fillStyle=bg;ctx.beginPath();ctx.arc(bxp,gy-br,br,0,Math.PI*2);ctx.fill();ctx.restore();
+  }
+  function steer(e){
+    var r=field.getBoundingClientRect();tx=clamp(((e.clientX-r.left)/r.width*2-1)*1.15,-.9,.9);
+  }
+  var L=loop(function(dt){update(dt);if(running)draw();});
+  field.addEventListener('pointerdown',steer);field.addEventListener('pointermove',steer);
+  reset();draw();
+  return{
+    start:function(){reset();running=true;L.start();},
+    resize:function(){C.fit();draw();},
+    destroy:function(){running=false;L.stop();field.removeEventListener('pointerdown',steer);field.removeEventListener('pointermove',steer);C.cv.remove();}
+  };
+}
+
+/* ---------- game list ---------- */
+var SV='<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+var GAMES=[
+  {id:'snake',name:'Neon Snake',color:'#22f0ff',glow:'rgba(34,240,255,.42)',tag:'Swipe',make:makeSnake,
+   blurb:'Eat the glowing orbs and grow. The walls and your own tail are deadly.',
+   how:'Swipe in any direction to steer. Eat the orbs, avoid the walls and your own tail. It speeds up as you grow.',
+   icon:SV+'<path d="M8 46H26V18H44V38H54"/><circle cx="54" cy="38" r="2.5" fill="currentColor"/></svg>'},
+  {id:'merge',name:'Glow Merge',color:'#a86bff',glow:'rgba(168,107,255,.42)',tag:'Swipe',make:makeMerge,
+   blurb:'Slide the tiles and merge matching numbers. How high can you get?',
+   how:'Swipe to slide every tile. Two matching tiles merge into one. The game ends when the board is full and nothing can merge.',
+   icon:SV+'<rect x="8" y="8" width="21" height="21" rx="5"/><rect x="35" y="8" width="21" height="21" rx="5"/><rect x="8" y="35" width="21" height="21" rx="5"/><rect x="35" y="35" width="21" height="21" rx="5"/></svg>'},
+  {id:'match',name:'Cat Match',color:'#ffb02e',glow:'rgba(255,176,46,.42)',tag:'Tap',make:makeMatch,
+   blurb:'Flip the cards and find all eight cat pairs. Fast and clean earns a bonus.',
+   how:'Tap two cards to flip them. Find all 8 matching cat faces. Fewer misses and a faster time give a bigger bonus.',
+   icon:SV+'<rect x="8" y="14" width="26" height="36" rx="5" transform="rotate(-10 21 32)"/><rect x="30" y="14" width="26" height="36" rx="5" transform="rotate(10 43 32)"/></svg>'},
+  {id:'dash',name:'Cat Dash',color:'#ff2e9a',glow:'rgba(255,46,154,.42)',tag:'Tap',make:makeDash,
+   blurb:'Run through the neon city and jump the spikes. Every second gets faster.',
+   how:'Tap anywhere to jump. Clear the spikes and blocks. The longer you run, the faster the city moves.',
+   icon:SV+'<path d="M12 52V18L24 28H40L52 18V52Z"/><circle cx="25" cy="40" r="2.5" fill="currentColor"/><circle cx="39" cy="40" r="2.5" fill="currentColor"/></svg>'},
+  {id:'smash',name:'Brick Smash',color:'#b8ff3d',glow:'rgba(184,255,61,.38)',tag:'Drag',make:makeSmash,
+   blurb:'Drag the paddle, bounce the ball and clear the wall. Three lives per game.',
+   how:'Drag your finger to move the paddle. Lift your finger to launch the ball. Clear every brick to reach the next level.',
+   icon:SV+'<rect x="6" y="8" width="16" height="8" rx="2"/><rect x="24" y="8" width="16" height="8" rx="2"/><rect x="42" y="8" width="16" height="8" rx="2"/><rect x="15" y="20" width="16" height="8" rx="2"/><rect x="33" y="20" width="16" height="8" rx="2"/><circle cx="36" cy="42" r="3.5" fill="currentColor"/><path d="M18 56H46"/></svg>'},
+  {id:'echo',name:'Echo',color:'#ff5a4e',glow:'rgba(255,90,78,.42)',tag:'Tap',make:makeEcho,
+   blurb:'Watch the lights, then play the pattern back. Each round adds one more.',
+   how:'Watch the pads light up, then tap them in the same order. Every round adds one more step.',
+   icon:SV+'<circle cx="20" cy="20" r="11"/><circle cx="44" cy="20" r="11"/><circle cx="20" cy="44" r="11"/><circle cx="44" cy="44" r="11"/></svg>'},
+  {id:'jet',name:'Jetpack Cat',color:'#4da3ff',glow:'rgba(77,163,255,.42)',tag:'Tap',make:makeJet,
+   blurb:'Tap to fly and squeeze through the gaps in the glowing pillars.',
+   how:'Tap to fly up and let go to fall. Fly through the gaps between the pillars. Do not touch the pillars or the ground.',
+   icon:SV+'<path d="M16 46V20L26 28H38L48 20V46C48 54 16 54 16 46Z"/><circle cx="26" cy="38" r="2.5" fill="currentColor"/><circle cx="38" cy="38" r="2.5" fill="currentColor"/><path d="M6 36L12 40L6 44"/></svg>'},
+  {id:'stack',name:'Stack Up',color:'#ffe14d',glow:'rgba(255,225,77,.38)',tag:'Tap',make:makeStack,
+   blurb:'Drop the sliding block and build the tallest tower you can.',
+   how:'Tap to drop the sliding block. Only the part that lines up stays, so the tower gets thinner. A perfect drop keeps the full width.',
+   icon:SV+'<rect x="14" y="42" width="36" height="10" rx="2"/><rect x="18" y="28" width="30" height="10" rx="2"/><rect x="22" y="14" width="22" height="10" rx="2"/></svg>'},
+  {id:'slash',name:'Fish Slash',color:'#ff8a3d',glow:'rgba(255,138,61,.4)',tag:'Swipe',make:makeSlash,
+   blurb:'Swipe to slice the flying fish. Stay away from the spiky urchins.',
+   how:'Swipe across the flying fish to slice them. Never touch a spiky urchin. Miss three fish and the round is over.',
+   icon:SV+'<path d="M10 38C20 22 40 22 50 38C40 54 20 54 10 38Z"/><path d="M50 38L58 30M50 38L58 46"/><path d="M6 12L58 56"/></svg>'},
+  {id:'mouse',name:'Mouse Pop',color:'#46ffb8',glow:'rgba(70,255,184,.38)',tag:'Tap',make:makeMouse,
+   blurb:'Tap the mice before they hide. Do not wake the dog.',
+   how:'Tap the mice as they pop out of the holes. Leave the dog alone, because waking it costs 2 points. You have 30 seconds.',
+   icon:SV+'<circle cx="14" cy="14" r="6"/><circle cx="32" cy="14" r="6"/><circle cx="50" cy="14" r="6"/><circle cx="14" cy="32" r="6"/><circle cx="32" cy="32" r="6"/><circle cx="50" cy="32" r="6"/><circle cx="14" cy="50" r="6"/><circle cx="32" cy="50" r="6"/><circle cx="50" cy="50" r="6"/></svg>'},
+  {id:'rush',name:'Fish Rush',color:'#ff8fd8',glow:'rgba(255,143,216,.4)',tag:'Tap',make:makeRush,
+   blurb:'Tap for fish, buy upgrades and catch the most in 90 seconds.',
+   how:'Tap the big fish to catch fish. Spend them on upgrades that catch even more. Get the biggest haul in 90 seconds.',
+   icon:SV+'<path d="M10 32C20 16 40 16 50 32C40 48 20 48 10 32Z"/><path d="M50 32L58 22V42Z"/><circle cx="22" cy="30" r="2" fill="currentColor"/></svg>'},
+  {id:'drop',name:'Neon Drop',color:'#8f7bff',glow:'rgba(143,123,255,.42)',tag:'Drag',make:makeDrop,
+   blurb:'Steer a glowing ball down an endless neon track. It only gets faster.',
+   how:'Drag left and right to steer the ball down the track. Dodge every wall and block. The longer you last, the faster it goes.',
+   icon:SV+'<path d="M26 10H38L56 54H8Z"/><path d="M32 16V54" stroke-dasharray="4 6"/></svg>'}
+];
+var CATS={snake:'Arcade',merge:'Puzzle',match:'Puzzle',dash:'Action',smash:'Arcade',echo:'Puzzle',jet:'Action',stack:'Arcade',slash:'Action',mouse:'Arcade',rush:'Idle',drop:'Action'};
+
+/* ---------- home ---------- */
+var grid=$('#grid');
+GAMES.forEach(function(g){
+  g.cat=CATS[g.id];
+  var li=document.createElement('li'),b=document.createElement('button');
+  b.type='button';b.className='card';b.style.setProperty('--c',g.color);b.style.setProperty('--cg',g.glow);
+  b.innerHTML='<span class="ico">'+g.icon+'</span><span class="meta"><span class="name">'+g.name+'</span><span class="blurb">'+g.blurb+
+    '</span><span class="foot"><span class="chip">'+g.tag+'</span><span class="best">Best<b data-best="'+g.id+'">0</b></span></span></span>';
+  b.addEventListener('click',function(){openGame(g);});
+  li.dataset.cat=g.cat;li.appendChild(b);grid.appendChild(li);
+});
+function refreshBests(){
+  GAMES.forEach(function(g){var el=document.querySelector('[data-best="'+g.id+'"]');if(el)el.textContent=store.get('catty:best:'+g.id,0);});
+}
+refreshBests();
+
+var fbar=$('#filters');
+['All','Action','Arcade','Puzzle','Idle'].forEach(function(c){
+  var b=document.createElement('button');b.type='button';b.className='fchip';b.textContent=c;
+  b.setAttribute('aria-pressed',c==='All'?'true':'false');
+  b.addEventListener('click',function(){
+    Array.prototype.forEach.call(fbar.children,function(x){x.setAttribute('aria-pressed','false');});
+    b.setAttribute('aria-pressed','true');
+    Array.prototype.forEach.call(grid.children,function(li){li.hidden=(c!=='All'&&li.dataset.cat!==c);});
+  });
+  fbar.appendChild(b);
+});
+
+/* ---------- tabs and popular games directory ---------- */
+const POP = [
+  ["Shooters & Fighters",[
+    ["1v1.LOL","Third-person building and shooting battle royale with touch controls.","https://www.jopi.com/game/game/1v1-lol/","https://www.google.com/search?kgmid=%2Fg%2F11j6b_hlfb&q=1v1.LOL"],
+    ["Time Shooter 2","First-person shooter where time only moves when you move.","https://www.jopi.com/it/game/game/time-shooter-2/",null],
+    ["Time Shooter 3: SWAT","Tactical sequel featuring riot shields and breach mechanics.","https://www.pacogames.com/action/time-shooter-3-swat",null],
+    ["Rooftop Snipers","Two-button physics-based shooting duel.","https://gameforge.com/en-US/littlegames/rooftop-snipers/",null],
+    ["Getaway Shootout","Chaotic race-to-the-chopper physics shooter.","https://poki.com/en/g/getaway-shootout","https://www.google.com/search?kgmid=%2Fg%2F11jp_jj3lp&q=Getaway+Shootout"],
+    ["Stickman Hook","Grapple-and-swing physics action game.","https://poki.com/en/g/stickman-hook","https://www.google.com/search?kgmid=%2Fg%2F11gz813606&q=Stickman+Hook"],
+    ["Stick War: Legacy","Side-scrolling stick-figure strategy and combat.","https://www.play-games.com/es/juego/41096/stick-war-legacy.html","https://www.google.com/search?kgmid=%2Fg%2F11c2y7kctj&q=Stick+War%3A+Legacy"],
+    ["Stick Merge","Weapon-merging and shooting range action.","https://poki.com/en/g/stick-merge","https://www.google.com/search?kgmid=%2Fg%2F11m6rhcs4j&q=Stick+Merge"],
+    ["Superhot Prototype","Browser version of the time-bending shooter.","https://poki.com/en/g/superhot-prototype",null],
+    ["Krunker.io","Fast-paced pixelated FPS with mobile touch UI support.","https://krunker.io/","https://www.google.com/search?kgmid=%2Fg%2F11hfgbnhqh&q=Krunker.io"],
+    ["Shell Shockers","Multiplayer egg-themed first-person shooter.","https://bubblebox.com/shell-shockers","https://www.google.com/search?kgmid=%2Fg%2F11j7xg3p49&q=Shell+Shockers"],
+    ["Kirka.io","Voxel-style browser FPS with mobile support.","https://kirka.io/","https://www.google.com/search?kgmid=%2Fg%2F11v115j_l9&q=Kirka.io"],
+    ["Venge.io","Objective-based fast-paced browser shooter.","https://venge.io/",null],
+    ["ZombsRoyale.io","2D top-down battle royale built for mobile and web.","https://zombsroyale.io/","https://www.google.com/search?kgmid=%2Fg%2F11v42ttw6b&q=ZombsRoyale.io"],
+    ["Surviv.io (Suroi.io)","Top-down 2D battle royale survival shooter.","https://suroi.io/","https://www.google.com/search?kgmid=%2Fg%2F11f57gsy8b&q=Surviv.io+%28Suroi.io%29"],
+    ["BuildRoyale.io","Top-down shooter with resource gathering and wall building.","https://buildroyale.io/","https://www.google.com/search?kgmid=%2Fg%2F11v6ccx69w&q=BuildRoyale.io"],
+    ["10 Minutes Till Dawn","Roguelike bullet-heaven survival shooter.","https://www.miniplay.com/game/10-minutes-till-dawn","https://www.google.com/search?kgmid=%2Fg%2F11sy3yddgb&q=10+Minutes+Till+Dawn"],
+    ["Vampire Survivors (Web Demo)","Auto-attacking gothic horror survival roguelike.","https://html-classic.itch.zone/html/5185382/index.html","https://www.google.com/search?kgmid=%2Fg%2F11pdr9rnbf&q=Vampire+Survivors"],
+    ["Brotato (Web Version)","Arena shooter roguelite with up to six weapons.","https://zapgames.io/brotato","https://www.google.com/search?kgmid=%2Fg%2F11ryx6nx70&q=Brotato"],
+    ["Archero (HTML5 Clone)","Tap-to-move, stop-to-shoot dungeon crawler.","https://www.miniplay.com/game/archero",null],
+    ["Johnny Trigger","Slow-motion platform shooting action.","https://gameforge.com/en-US/littlegames/johnny-trigger-online/","https://www.google.com/search?kgmid=%2Fg%2F11fqqbsy_2&q=Johnny+Trigger"],
+    ["Mr. Bullet","Ricochet physics puzzle shooter.","https://gameforge.com/en-US/littlegames/mr-bullet/","https://www.google.com/search?kgmid=%2Fg%2F11m_f7t31m&q=Mr.+Bullet"],
+    ["Ragdoll Archers","Physics-based bow-and-arrow combat.","https://www.miniplay.com/game/ragdoll-archers","https://www.google.com/search?kgmid=%2Fg%2F11vkbzj4ry&q=Ragdoll+Archers"],
+    ["Bowmasters (HTML5)","Turn-based projectile throwing duel.","https://zapgames.io/bowmasters",null],
+    ["Raft Wars","Turn-based artillery game on water.","https://poki.com/en/g/raft-wars","https://www.google.com/search?kgmid=%2Fg%2F11q2t5l54p&q=Raft+Wars"],
+    ["Raft Wars 2","Sequel set in a waterpark with upgraded weapons.","https://www.coolmathgames.com/0-raft-wars-2?variant=next",null],
+    ["Tank Trouble","Top-down maze tank battle with ricocheting bullets.","https://gamespa.games/games/tank-trouble/","https://www.google.com/search?kgmid=%2Fg%2F11rz5bgq80&q=Tank+Trouble"],
+    ["Diep.io","Multiplayer tank upgrade and arena shooter.","https://diep.io/","https://www.google.com/search?kgmid=%2Fg%2F11c5231_h4&q=Diep.io"],
+    ["Arras.io","Fan-made sequel to Diep.io with expanded tank classes.","https://zapgames.io/arras-io",null],
+    ["Awesome Tanks 2","Top-down destructible-environment tank shooter.","https://www.gametop.com/online/awesome-tanks-2/",null],
+    ["Gun Mayhem 2","Platform arena brawler focused on knocking opponents off-stage.","https://www.meegames.com/es/juego/2718-gun-mayhem-2.html",null],
+    ["Iron Snout","Fast-paced two-button martial arts fighting game.","https://www.jopi.com/fr/game/game/iron-snout/","https://www.google.com/search?kgmid=%2Fg%2F11cm5zkjj1&q=Iron+Snout"],
+    ["Bacon May Die","Side-scrolling beat-'em-up action game.","https://www.bubbleshooter.net/game/bacon-may-die/","https://www.google.com/search?kgmid=%2Fg%2F11f6481p5g&q=Bacon+May+Die"],
+    ["Shadow Fight (HTML5)","Silhouette martial arts combat game.","https://gameforge.com/en-US/littlegames/shadow-fight/","https://www.google.com/search?kgmid=%2Fg%2F11h9k_wbsg&q=Shadow+Fight"],
+    ["Gladihoppers","Physics-based 2D gladiator arena fighter.","https://poki.com/en/g/gladihoppers","https://www.google.com/search?kgmid=%2Fg%2F11jrsjzdv4&q=Gladihoppers"],
+  ]],
+  ["Endless Runners & Platformers",[
+    ["Subway Surfers (HTML5)","Iconic three-lane endless runner with swipe controls.","https://www.jopi.com/game/game/subway-surfers/","https://www.google.com/search?kgmid=%2Fm%2F0kyvw1z&q=Subway+Surfers"],
+    ["Temple Run 2 (HTML5)","Cliffside endless runner with turn, jump, and slide swipes.","https://rivegames.com/game/temple-run-2","https://www.google.com/search?kgmid=%2Fm%2F0qfqk1v&q=Temple+Run+2"],
+    ["Jetpack Joyride (HTML5)","One-touch side-scrolling jetpack action.","https://zapgames.io/jetpack-joyride","https://www.google.com/search?kgmid=%2Fm%2F0k2hxv2&q=Jetpack+Joyride"],
+    ["Geometry Dash (Scratch / HTML5)","Rhythm-based one-tap obstacle platformer.","https://minix.games/play/geometry-dash-scratch","https://www.google.com/search?kgmid=%2Fg%2F1q6h1_x1n&q=Geometry+Dash"],
+    ["Geometry Dash SubZero","Winter-themed rhythm platforming levels.","https://www.miniplay.com/game/geometry-dash-subzero","https://www.google.com/search?kgmid=%2Fg%2F11gf5_6thc&q=Geometry+Dash+SubZero"],
+    ["Slope","High-speed 3D neon ball downhill runner.","https://minix.games/play/slope","https://www.google.com/search?kgmid=%2Fg%2F11v42tjh01&q=Slope"],
+    ["Slope 2","Sequel with boosters, diamonds, and steeper ramps.","https://slope2online.io/",null],
+    ["Tunnel Rush","First-person 3D rotating obstacle dodger.","https://toytheater.com/tunnel-rush/",null],
+    ["Run 3","Gravity-shifting space tunnel endless runner.","https://www.jopi.com/game/game/run-3/",null],
+    ["OvO","Fast-paced parkour platformer with slide and dive mechanics.","https://gameforge.com/en-US/littlegames/ovo/","https://www.google.com/search?kgmid=%2Fg%2F11y1htnv00&q=OvO"],
+    ["OvO Dimensions","Expanded levels and skins for the parkour platformer.","https://poki.com/en/g/ovo-dimensions",null],
+    ["Vex 3","Stickman acrobatic obstacle course platformer.","https://gameforge.com/en-US/littlegames/vex-3/","https://www.google.com/search?kgmid=%2Fg%2F11fwcxtq87&q=Vex+3"],
+    ["Vex 4","Adds new traps, swimming, and zip-lining mechanics.","https://gameforge.com/en-US/littlegames/vex-4/",null],
+    ["Vex 5","Features speedrun challenges and tougher spike traps.","https://gameforge.com/en-US/littlegames/vex-5/",null],
+    ["Vex 6","Introduces daily tasks and unlockable character skins.","https://www.jopi.com/game/game/vex-6/",null],
+    ["Vex 7","Adds grappling hooks and potion mechanics.","https://www.bubbleshooter.net/game/vex-7/",null],
+    ["Doodle Jump (HTML5)","Tilt-or-tap vertical platform climber.","https://www.topgames.com/play/Doodle-Jump-Online","https://www.google.com/search?kgmid=%2Fm%2F07kdgg5&q=Doodle+Jump"],
+    ["Crossy Road (HTML5)","Tap-to-hop endless arcade road crosser.","https://zapgames.io/crossy-road","https://www.google.com/search?kgmid=%2Fm%2F012c1d59&q=Crossy+Road"],
+    ["Flappy Bird (HTML5)","Classic one-tap pipe-dodging arcade game.","https://gameforge.com/en-US/littlegames/flappy-bird-multiplayer/","https://www.google.com/search?kgmid=%2Fm%2F0_gzt9y&q=Flappy+Bird"],
+    ["Dino Game (Chrome T-Rex)","Offline-friendly one-tap desert runner.","https://www.meegames.com/en/game/2604-chrome-dinosaur-game.html","https://www.google.com/search?kgmid=%2Fg%2F11j4y8fckd&q=Dino+Game+%28Chrome+T-Rex%29"],
+    ["Tomb of the Mask","Swipe-to-dash retro arcade maze climber.","https://www.miniplay.com/game/tomb-of-the-mask","https://www.google.com/search?kgmid=%2Fg%2F11fj329lbk&q=Tomb+of+the+Mask"],
+    ["Red Ball 4","Physics-based rolling platformer.","https://www.jopi.com/game/game/red-ball-4/","https://www.google.com/search?kgmid=%2Fg%2F11g65fwhng&q=Red+Ball+4"],
+    ["Fireboy and Watergirl 1: Forest Temple","Co-op elemental puzzle platformer.","https://www.pacogames.com/logic/fireboy-and-watergirl-1-forest-temple","https://www.google.com/search?kgmid=%2Fg%2F11h1mdr8nh&q=Fireboy+and+Watergirl+1%3A+Forest+Temple"],
+    ["Fireboy and Watergirl 2: Light Temple","Adds mirror and light-beam puzzles.","https://www.miniplay.com/game/fireboy-and-watergirl-2-the-light-temple",null],
+    ["Fireboy and Watergirl 3: Ice Temple","Introduces sliding ice and freezing mechanics.","https://www.onlinegames.io/fireboy-and-watergirl-3-ice-temple/",null],
+    ["Fireboy and Watergirl 4: Crystal Temple","Features teleportation portals.","https://www.onlinegames.io/fireboy-and-watergirl-4-crystal-temple/",null],
+    ["Bob the Robber","Stealth puzzle platformer with lockpicking and cameras.","https://www.bubbleshooter.net/game/bob-the-robber/",null],
+    ["Adam and Eve","Point-and-click prehistoric adventure platformer.","https://gameforge.com/en-US/littlegames/adam-and-eve-games/",null],
+    ["Snail Bob","Physics-based contraption puzzle platformer.","https://keygames.com/snail-bob-1-game/",null],
+    ["Fancy Pants Adventure","Fluid hand-drawn stickman parkour platformer.","https://bubblebox.com/fancy-pants-adventure","https://www.google.com/search?kgmid=%2Fm%2F05mvpq1&q=Fancy+Pants+Adventure"],
+    ["Super Mario 63 / Super Mario Flash","Fan-made browser platformers with on-screen D-pads.","https://www.play-games.com/game/477/super-mario-63.html",null],
+    ["Sonic Revert / Ultimate Flash Sonic","Browser-based high-speed platforming.","https://www.play-games.com/game/17165/ultimate-flash-sonic.html",null],
+    ["Celeste Classic (PICO-8)","Original 8-bit mountain-climbing platformer with touch overlay.","https://kbhgames.com/game/celeste-classic",null],
+    ["Level Devil","Troll platformer where floors and spikes move unexpectedly.","https://www.jopi.com/game/game/level-devil/","https://www.google.com/search?kgmid=%2Fg%2F11vtb4kh2m&q=Level+Devil"],
+    ["Big Tower Tiny Square","Precision single-screen vertical climbing platformer.","https://www.coolmathgames.com/0-big-tower-tiny-square?variant=next",null],
+  ]],
+  ["Racing, Driving & Stunts",[
+    ["Moto X3M","Side-scrolling dirt bike stunt and obstacle racer.","https://brainplay.com/p/moto-x3m",null],
+    ["Moto X3M Winter","Holiday-themed tracks with ice ramps and candy canes.","https://www.coolmathgames.com/0-moto-x3m-winter?variant=next",null],
+    ["Moto X3M Pool Party","Summer waterpark tracks with underwater tubes.","https://gameforge.com/en-US/littlegames/moto-x3m-pool-party/",null],
+    ["Moto X3M Spooky Land","Halloween-themed stunt levels.","https://gameforge.com/en-US/littlegames/moto-x3m-spooky-land/",null],
+    ["Drive Mad","Physics-based monster truck obstacle balancer.","https://www.jopi.com/game/game/drive-mad/",null],
+    ["Eggy Car","Hill-climbing driving game where you must not drop an egg.","https://playgama.com/game/eggy-car",null],
+    ["Hill Climb Racing (HTML5)","Two-pedal physics fuel-management racer.","https://zapgames.io/hill-climb-racing",null],
+    ["Drift Hunters","3D car tuning and drift-scoring simulator.","https://poki.com/en/g/drift-hunters",null],
+    ["Drift Boss","One-tap isometric corner-drifting game.","https://brainplay.com/p/drift-boss",null],
+    ["Madalin Stunt Cars 2","Open-world 3D supercar stunt sandbox.","https://www.jopi.com/game/game/madalin-stunt-cars-2/",null],
+    ["PolyTrack","Low-poly TrackMania-style time-trial racer with track editor.","https://poki.com/en/g/polytrack",null],
+    ["Smash Karts","3D multiplayer kart battle arena.","https://poki.com/en/g/smash-karts",null],
+    ["Kart Bros","Arcade kart racing with power-ups.","https://www.play-games.com/game/39047/kart-bros.html",null],
+    ["Snow Rider 3D","First-person downhill sledding obstacle dodger.","https://www.jopi.com/game/game/snow-rider-3d/",null],
+    ["Traffic Rider (HTML5)","First-person highway motorcycle weaving.","https://gameforge.com/en-US/littlegames/traffic-rider/",null],
+    ["Traffic Jam 3D","Highway lane-splitting time-trial racer.","https://www.play-games.com/game/31127/traffic-jam-3d.html",null],
+    ["Highway Racer","Endless highway traffic dodging.","https://zapgames.io/highway-racer",null],
+    ["Parking Fury 3D","Precision top-down and 3D car parking challenges.","https://www.jopi.com/game/game/parking-fury-3d/",null],
+    ["Real Flying Truck Simulator 3D","Arcade driving and flight hybrid.","https://www.miniplay.com/game/real-flying-truck-simulator-3d",null],
+    ["Earn to Die 2012","Upgradeable zombie-crushing desert vehicle runner.","https://bubblebox.com/earn-to-die-2012",null],
+    ["Happy Wheels","Ragdoll physics vehicle obstacle course.","https://gameforge.com/en-US/littlegames/happy-wheels/",null],
+    ["Short Life","Ragdoll trap-dodging obstacle course.","https://poki.com/en/g/short-life",null],
+    ["Short Ride","Vehicle-focused sequel to Short Life.","https://poki.us.com/short-ride/",null],
+    ["Cluster Rush","First-person leaping across moving semi-trucks.","https://www.onlinegames.io/cluster-rush/",null],
+    ["Rocket Soccer Derby","Car soccer inspired by Rocket League.","https://poki.com/en/g/rocket-soccer-derby",null],
+    ["RocketGoal.io","Multiplayer browser car-soccer arena.","https://rocketgoalio.io/",null],
+    ["Burnout Drift","3D drifting with customizable car setups.","https://www.jopi.com/game/game/burnout-drift-online/",null],
+    ["Extreme Car Driving Simulator (WebGL)","Free-roam city driving sandbox.","https://gameforge.com/en-US/littlegames/extreme-car-driving-simulator-game/",null],
+    ["Line Rider","Draw-your-own-track sledding physics sandbox.","https://www.bubbleshooter.net/game/line-rider/",null],
+    ["Free Rider HD","User-created BMX line-drawing stunt tracks.","https://www.miniplay.com/game/free-rider-hd",null],
+  ]],
+  ["Multiplayer .io & Sandbox Games",[
+    ["Agar.io","Eat smaller cells to grow into the largest blob on the server.","https://gameforge.com/en-US/littlegames/agar-io/",null],
+    ["Slither.io","Grow your glowing worm by eating pellets and cutting off rivals.","https://gameforge.com/en-US/littlegames/slither-io/",null],
+    ["Paper.io 2","Capture territory by drawing loops without getting your tail hit.","https://www.jopi.com/game/game/paper-io-2/",null],
+    ["Hole.io","Swallow buildings, cars, and rival black holes in a shrinking city.","https://poki.com/en/g/hole-io",null],
+    ["Bloxd.io","Minecraft-inspired browser sandbox with parkour, bedwars, and survival.","https://bloxd.io/play/",null],
+    ["MineFun.io","Block-building and mini-game multiplayer sandbox.","https://www.jopi.com/game/game/minefun-io/",null],
+    ["Minecraft Classic (0.0.23a)","Official browser-based creative block sandbox.","https://minecraft.pl/en/minecraft-classic",null],
+    ["Eaglercraft (1.5.2 / 1.8.8)","Full browser-ported Minecraft with touch controls enabled.",null,null],
+    ["Paper Minecraft (Griffpatch)","2D Scratch-built Minecraft survival and creative mode.","https://www.pacogames.com/action/paper-minecraft",null],
+    ["Terraria (Scratch / HTML5 Port)","2D sandbox exploration and crafting.","https://yaksgames.com/games/terraria-online/G991E5CEDA",null],
+    ["Skribbl.io","Multiplayer Pictionary-style drawing and guessing game.","https://skribbl.io/?hl=en",null],
+    ["Gartic.io","Fast-paced browser drawing and word-guessing rooms.","https://gamespa.games/games/gartic-io/",null],
+    ["Codenames Online","Official browser version of the spymaster word-association game.","https://codenames.game/?ref=producthunt",null],
+    ["Among Us (HTML5 / Scratch Clone)","Social deduction spaceship task-and-impostor game.","https://gamaverse.com/among-us/html5/",null],
+    ["Town of Salem (Web)","Browser-based Mafia/Werewolf social deduction.","https://www.townofsalem.io/",null],
+    ["MooMoo.io","Gather wood and stone to build a base and defend against raiders.","https://lagged.com/en/g/moomoo-io",null],
+    ["Starve.io","Top-down crafting, hunger, and cold survival multiplayer.","https://arcadespot.com/game/starve-io/",null],
+    ["Zombs.io","Build a base by day and defend against zombie waves by night.","https://zombs.io/",null],
+    ["Lordz.io","Medieval RTS where you collect gold to build a massive army.","https://www.bubbleshooter.net/game/lordz-io/",null],
+    ["Deeeep.io","Ocean food-chain evolution multiplayer game.","https://deeeep.io/",null],
+    ["Mope.io","Land and sea animal evolution survival game.","https://www.jopi.com/game/game/mope.io/",null],
+    ["Wormate.io","Candy-eating snake arena with power-up potions.","https://wormate.io/",null],
+    ["Powerline.io","Multiplayer Tron-style neon light-cycle arena.","https://powerline.io/",null],
+    ["Hexanaut.io","Hexagonal grid territory-conquering .io game.","https://hexanaut.io/",null],
+    ["Territorial.io","Fast-paced map conquest and border-expansion strategy.","https://lagged.com/en/g/territorialio",null],
+    ["Evowars.io","Top-down sword-swinging evolution brawler.","https://gameforge.com/en-US/littlegames/evowars-io/",null],
+    ["Stabfish.io","Narwhal-style underwater skewering arena.","https://www.onlinegames.io/stabfish-io/",null],
+    ["Aquapark.io","Water-slide racing where you knock rivals off the track.","https://www.jopi.com/game/game/aquapark.io/",null],
+    ["Snowball.io","Roll giant snowballs to knock opponents off an icy platform.","https://gameforge.com/ja-JP/littlegames/snowball.io/",null],
+    ["Crowd City (HTML5)","Absorb neutral pedestrians to grow the largest mob.","https://www.gametop.com/online/crowd-city/",null],
+  ]],
+  ["Sports & Physics Mini-Games",[
+    ["Basket Random","Chaotic one-button two-player physics basketball.","https://playgama.com/game/basket-random",null],
+    ["Soccer Random","Unpredictable one-button physics soccer with changing fields.","https://playgama.com/game/soccer-random",null],
+    ["Volley Random","One-button physics beach and indoor volleyball.","https://gameforge.com/en-US/littlegames/volley-random/",null],
+    ["Boxing Random","Wobbly-armed one-button physics boxing matches.","https://www.jopi.com/game/game/boxing-random/",null],
+    ["Basketball Stars","1v1 and 2v2 arcade basketball with special dunks.","https://www.play-games.com/game/24672/basketball-stars.html",null],
+    ["Basketball Legends","Big-headed arcade basketball featuring pro-inspired moves.","https://www.play-games.com/game/11612/basketball-legends.html",null],
+    ["Basket Bros","Fast-paced 1v1 dunking and blocking arcade basketball.","https://minix.games/play/basketbros",null],
+    ["Soccer Bros","Arcade 1v1 soccer with tackle and power-shot mechanics.","https://www.jopi.com/game/game/soccer-bros/",null],
+    ["Football Bros","Arcade American football with jukes and stiff-arms.","https://bubblebox.com/football-bros",null],
+    ["Baseball Bros","Arcade pitching, batting, and base-running.","https://www.play-games.com/game/39066/baseball-bros.html",null],
+    ["Wrestle Bros","Pro-wrestling body-slamming arcade brawler.","https://www.jopi.com/game/game/wrestle-bros/",null],
+    ["Retro Bowl","Pixel-art American football franchise and play-calling game.","https://www.play-games.com/es/juego/40042/retro-bowl.html",null],
+    ["Retro Bowl College","College football edition with recruiting and GPA management.","https://poki.com/en/g/retro-bowl-college",null],
+    ["Penalty Shooters 2","Swipe-to-shoot and dive penalty shootout tournament.","https://www.jopi.com/game/game/penalty-shooters-2/",null],
+    ["Head Soccer 2023","1v1 big-head soccer with power kicks.","https://www.miniplay.com/game/head-soccer-2023",null],
+    ["A Small World Cup","Ragdoll flick-to-launch soccer tournament.","https://minix.games/play/a-small-world-cup",null],
+    ["8 Ball Billiards Classic","Touch-aimed pool game against AI or local players.","https://gameforge.com/en-US/littlegames/8-ball-billiards-classic/",null],
+    ["Table Tennis World Tour","Swipe-controlled ping pong tournament.","https://www.jopi.com/game/game/table-tennis-world-tour/",null],
+    ["Tennis Masters","2D arcade tennis with power-ups and tournaments.","https://www.miniplay.com/game/tennis-masters",null],
+    ["Archery World Tour","Wind-adjusted target shooting.","https://gameforge.com/en-US/littlegames/archery-world-tour/",null],
+    ["Golf Orbit","One-tap timing golf game to launch balls into space.","https://www.onlinegames.io/golf-orbit/",null],
+    ["Mini Golf Club","3D isometric miniature golf courses.","https://www.miniplay.com/game/mini-golf-club",null],
+    ["Wonderputt","Surreal, transforming miniature golf course.","https://www.coolmathgames.com/0-wonderputt?variant=next",null],
+    ["Bowling King (HTML5)","Swipe-to-spin 3D ten-pin bowling.","https://www.play-games.com/game/31542/bowling-king-online.html",null],
+    ["Dunk Shot","Drag-and-aim endless basketball hoop climbing.","https://gameforge.com/en-US/littlegames/dunk-shot/",null],
+    ["Tap Dunk Basketball","Rhythm-tapping basketball combo game.","https://www.miniplay.com/game/tap-dunk-basketball",null],
+    ["Flip Diving","Hold-and-release cliff-diving flip simulator.","https://www.miniplay.com/game/flip-diving",null],
+    ["Backflip Dive 3D","Precision gymnastics backflip landing game.","https://www.jopi.com/game/game/backflip-dive-3d/",null],
+    ["Stickman Golf","2D platforming golf with sticky balls and nitro shots.","https://gameforge.com/en-US/littlegames/stickman-golf-online/",null],
+    ["Pako Highway / Ice Hockey Shootout","Quick-session arcade sports challenges.","https://pakohighway.online/",null],
+  ]],
+  ["Puzzle, Logic & Brain Teasers",[
+    ["2048","Swipe tiles to combine matching numbers up to 2048.","https://brainplay.com/p/2048",null],
+    ["2048 Cupcakes","Dessert-themed variation of the sliding number puzzle.","https://2048cupcakes.net/",null],
+    ["Threes! (JS)","Original number-matching sliding puzzle predecessor.","https://playthrees.com/",null],
+    ["Wordle (Unlimited)","Guess the five-letter word in six tries.","https://lagged.com/en/g/wordle-unlimited",null],
+    ["Connections (Archive / Clone)","Group 16 words into four hidden categories.","https://connections.game/archive/",null],
+    ["Block Blast! (HTML5)","Drag polyomino shapes onto an 8x8 grid to clear lines.","https://gameforge.com/en-US/littlegames/block-blast/",null],
+    ["1010!","Classic 10x10 grid block-placing puzzle.","https://gameforge.com/en-US/littlegames/1010-block-puzzle/",null],
+    ["Tetris (HTML5 / TwitchTetris)","Classic falling-block puzzle with touch buttons.","https://minix.games/play/twitch-tetris",null],
+    ["Sandtris","Tetris where blocks dissolve into physics-simulated sand grains.","https://www.jopi.com/game/game/sandtris/",null],
+    ["Cut the Rope","Swipe to slice ropes and feed candy to Om Nom.","https://brainplay.com/p/cut-the-rope",null],
+    ["Cut the Rope: Time Travel","Feed two monsters across different historical eras.","https://www.bubbleshooter.net/game/cut-the-rope-time-travel/",null],
+    ["Where's My Water? (HTML5)","Dig dirt channels to guide water to Swampy's tub.","https://www.play-games.com/game/6563/wheres-my-water.html",null],
+    ["Water Sort Puzzle","Pour colored liquids between test tubes until sorted.","https://visu.network/games/water-sort-puzzle/",null],
+    ["Ball Sort Puzzle","Sort colored balls into matching tubes.","https://www.elseland.ai/games/ball-sort-puzzle",null],
+    ["Unblock Me / Parking Jam","Slide blocking cars or wooden blocks out of an exit.","https://www.bubbleshooter.net/game/unblock-parking-jam/",null],
+    ["Minesweeper","Classic grid-deduction bomb-flagging puzzle.","https://brainplay.com/p/minesweeper",null],
+    ["Sudoku","Classic 9x9 number-placement logic puzzle.","https://poki.com/en/g/sudoku",null],
+    ["Nonogram / Picross","Reveal pixel-art pictures using row and column number clues.","https://brainplay.com/p/picross",null],
+    ["Mahjong Solitaire","Match open pairs of traditional tiles to clear the board.","https://www.247mahjong.com/",null],
+    ["Candy Crush (HTML5 Match-3 Clones)","Swap gems or candies to make rows of three.","https://www.play-games.com/es/juego/15361/candy-crush.html",null],
+    ["Bubble Shooter","Aim and pop clusters of three or more colored bubbles.","https://www.bubbleshooter.net/",null],
+    ["Zuma Boom","Shoot colored marbles into a rolling chain before it reaches the skull.","https://www.bubbleshooter.net/zuma-boom/",null],
+    ["Bejeweled (HTML5)","Classic gem-swapping match-three puzzle.","https://yaksgames.com/games/bejeweled-classic/G069504002",null],
+    ["Suika Game (Watermelon Game)","Drop and merge fruits inside a box without overflowing.","https://lagged.com/en/g/suika-game-watermelon",null],
+    ["Little Alchemy 2","Combine basic elements (fire, water, earth, air) to discover 700+ items.","https://poki.com/en/g/little-alchemy-2",null],
+    ["Infinite Craft","AI-assisted element-combining sandbox by Neal.fun.","https://www.miniplay.com/game/infinite-craft",null],
+    ["World's Hardest Game","Precision dodging puzzle where you collect yellow coins.","https://www.coolmathgames.com/0-worlds-hardest-game?variant=next",null],
+    ["Bloxorz","Roll a 1x1x2 rectangular block into a square hole without falling off.","https://www.onlinegames.io/bloxorz/",null],
+    ["IQ Ball","Grapple-and-swing physics puzzle to reach the target.","https://www.coolmathgames.com/0-iq-ball?variant=next",null],
+    ["Sugar, Sugar","Draw lines to guide falling sugar grains into coffee cups.","https://poki.com/en/g/sugar-sugar-html5",null],
+    ["Happy Glass","Draw lines to channel water and fill an empty glass.","https://brainplay.com/p/happy-glass",null],
+    ["Brain Test: Tricky Puzzles","Lateral-thinking riddle and screen-interaction puzzles.","https://poki.com/en/g/brain-test-tricky-puzzles",null],
+    ["Thief Puzzle","Stretch a thief's elastic arm around obstacles to grab loot.","https://brainplay.com/p/thief-puzzle",null],
+    ["Save the Doge","Draw a protective shield to keep a dog safe from bees.","https://www.miniplay.com/game/save-the-doge",null],
+    ["20 Questions / Akinator (Web)","Web-based character-guessing genie.","https://thisvsthat.io/20-questions-vs-akinator",null],
+  ]],
+  ["Idle, Tycoon, Simulation & Strategy",[
+    ["Cookie Clicker","Tap the giant cookie and buy grandmas, factories, and portals.","https://playbrain.games/games/cookie-clicker",null],
+    ["Adventure Capitalist (Web)","Build a lemon-stand-to-moon-colony idle empire.","https://www.jopi.com/game/game/adventure-capitalist/",null],
+    ["Dogeminer","Mine Dogecoins and hire Shiba Inu helpers to reach the moon.","https://www.miniplay.com/game/dogeminer-2",null],
+    ["Dogeminer 2","Expanded space-traveling idle mining sequel.","https://lagged.com/es/p/dogeminer-2",null],
+    ["Tiny Fishing","Cast your line, drag to catch rare fish, and upgrade depth.","https://gameforge.com/en-US/littlegames/tiny-fishing/",null],
+    ["Monkey Mart","Run a supermarket, stock bananas, and hire monkey cashiers.","https://minix.games/play/monkeymart",null],
+    ["My Perfect Hotel","Clean rooms, collect cash, and expand a hotel resort.","https://poki.com/en/g/my-perfect-hotel",null],
+    ["Papa's Pizzeria","Take orders, top pizzas, bake, and slice for picky customers.","https://www.play-games.com/game/15553/papas-pizzeria.html",null],
+    ["Papa's Burgeria","Grill patties and stack burger ingredients to order.","https://www.play-games.com/game/15342/papas-burgeria.html",null],
+    ["Papa's Freezeria","Blend sundaes and add toppings at a beachside shop.","https://poki.com/en/g/papas-freezeria",null],
+    ["Papa's Taco Mia","Cook meats and build custom tacos.","https://www.onlinegames.io/papas-taco-mia/",null],
+    ["Papa's Pancakeria","Flip pancakes, waffles, and pour drinks.","https://www.play-games.com/game/24490/papas-pancakeria.html",null],
+    ["Papa's Sushiria","Roll sushi, slice pieces, and brew bubble tea.","https://poki.com/en/g/papas-sushiria",null],
+    ["Papa's Scooperia","Bake cookies and scoop ice cream sundaes.","https://www.onlinegames.io/papas-scooperia/",null],
+    ["Papa's Donuteria","Fry, fill, and glaze custom donuts.","https://www.coolmathgames.com/0-papas-donuteria?variant=next",null],
+    ["Jacksmith","Forge swords, bows, and shields for warriors heading into battle.","https://www.onlinegames.io/jacksmith/",null],
+    ["Good Pizza, Great Pizza (Web)","Cozy pizzeria management and story simulator.","https://www.topgames.com/play/Good-Pizza-Great-Pizza",null],
+    ["BitLife (Unblocked Web)","Text-based life simulator from birth to death.","https://freewebgames.io/bitlife",null],
+    ["InstLife","Minimalist text-based life decision simulator.","https://iamavig.com/2018/04/05/instlife/",null],
+    ["The Oregon Trail (Web / DOSBox)","Classic pioneer survival and resource management.","https://archive.org/embed/msdos_Oregon_Trail_The_1990",null],
+    ["A Dark Room","Minimalist text-based incremental survival and exploration RPG.","https://neonroof.com/m/store/a-dark-room",null],
+    ["Universal Paperclips","Incremental AI strategy game about maximizing paperclip production.","https://yaksgames.com/games/universal-paperclips/G06080A656",null],
+    ["Candy Box 2","ASCII-art incremental adventure and RPG.","https://yaksgames.com/games/candy-box-2/G9930C6838",null],
+    ["Realm Grinder","Deep fantasy faction-based idle strategy game.","https://www.miniplay.com/game/realm-grinder",null],
+    ["Bloons TD 5 (HTML5)","Tower defense where monkeys pop waves of balloons.","https://www.jopi.com/game/game/bloons-td-5/",null],
+    ["Bloons TD 4","Classic tracks and monkey tower upgrades.","https://www.jopi.com/game/game/bloons-td-4/",null],
+    ["Kingdom Rush","Medieval fantasy tower defense with heroes and barracks.","https://www.play-games.com/game/39322/kingdom-rush.html",null],
+    ["Kingdom Rush Frontiers","Desert and jungle sequel with new tower specializations.","https://www.gog.com/en/game/kingdom_rush_frontiers",null],
+    ["Plants vs. Zombies (HTML5 / Scratch)","Lane-based garden defense against zombies.","https://www.miniplay.com/game/plants-vs-zombies-scratch",null],
+    ["Age of War","Side-scrolling tug-of-war base defense across historical eras.","https://gameforge.com/en-US/littlegames/age-of-war/",null],
+    ["Age of War 2","Expanded tech trees, turrets, and unit upgrades.","https://quenq.com/arcade/ageofwar2/",null],
+    ["Learn to Fly 2","Launch a penguin off a ramp and upgrade gliders and rockets.","https://www.coolmathgames.com/0-learn-to-fly-2?variant=next",null],
+    ["Learn to Fly 3","Build a custom spacecraft to reach the moon.","https://www.play-games.com/game/9240/learn-to-fly-3.html",null],
+    ["Duck Life 4","Train a duck in running, flying, swimming, and climbing to win races.","https://bubblebox.com/ducklife-4",null],
+    ["Polytopia (Web)","Turn-based low-poly 4X civilization strategy.","https://www.uptoplay.net/the-battle-of-polytopia/app.the.battle.of.polytopia",null],
+  ]],
+  ["Retro Arcade, Rhythm & Board Classics",[
+    ["Pac-Man (Google Doodle / HTML5)","Swipe to navigate mazes, eat pellets, and dodge ghosts.","https://pacmanonline.org/game",null],
+    ["Ms. Pac-Man (HTML5)","Classic arcade sequel with moving fruit and multiple mazes.","https://www.mspacman1.com/",null],
+    ["Snake (Google Snake)","Swipe to eat apples without hitting walls or your tail.",null,null],
+    ["Space Invaders (HTML5)","Slide and shoot descending rows of pixel aliens.","https://zapgames.io/space-invaders",null],
+    ["Galaga (HTML5)","Classic arcade space shooter with diving enemy formations.","https://yaksgames.com/games/galaga-special-edition/G06B891AC7",null],
+    ["Asteroids (HTML5)","Rotate, thrust, and blast floating space rocks.","https://minix.games/play/asteroids",null],
+    ["Breakout / Atari Breakout","Slide a paddle to bounce a ball and smash brick walls.","https://gamespa.games/games/atari-breakout/",null],
+    ["Pong","Classic two-paddle arcade table tennis.","https://www.clasicagames.com/games/pong",null],
+    ["Frogger (HTML5)","Tap and swipe to cross busy highways and river logs.","https://gameforge.com/en-US/littlegames/frogger/",null],
+    ["Donkey Kong (HTML5)","Climb ladders and jump over rolling barrels.","https://www.dan-dare.org/html5-games/super-mario-games/donkey-kong/donkey-kong.htm",null],
+    ["Friday Night Funkin' (HTML5 Mobile Port)","Tap-lane rhythm battle game with touch hitboxes.","https://bubblebox.com/friday-night-funkin",null],
+    ["Magic Tiles 3 (HTML5)","Tap falling black piano keys to the beat.","https://www.bestgames.com/Magic-Tiles-3",null],
+    ["Incredibox (Web Demo)","Drag-and-drop beatboxing and music-mixing toy.","https://www.incredibox.com/info/faq",null],
+    ["Sprunki (Incredibox Mod)","Popular horror-and-cute music-mixing browser mod.","https://www.play-games.com/pt/jogos-sprunki.html",null],
+    ["Chess.com / Lichess (Web)","Mobile-friendly browser chess against bots or players.",null,null],
+    ["Checkers (CardGames.io)","Clean, fast-loading browser checkers.","https://www.coolmathgames.com/0-checkers",null],
+    ["Uno (Four Colors)","Classic color-and-number matching card game.","https://www.topgames.com/play/Uno-4-Colors",null],
+    ["Solitaire (Klondike / Spider / FreeCell)","Drag-and-drop single-player card classics.","https://www.pacogames.com/logic/solitaire-klondike-spider-freecell",null],
+    ["Monopoly (Richup.io)","Browser-based property trading multiplayer board game.","https://richup.io/",null],
+    ["Battleship (HTML5)","Grid-based naval fleet guessing game.","https://gameforge.com/en-US/littlegames/battleship/",null],
+  ]],
+];
+var PCOLS=['#ff2e9a','#22f0ff','#ffb02e','#b8ff3d','#ff5a4e','#a86bff','#46ffb8','#4da3ff'];
+function glowOf(hex){
+  var n=parseInt(hex.slice(1),16);
+  return'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',.4)';
+}
+var plist=$('#plist'),pcount=$('#pcount'),psearch=$('#psearch'),pfilters=$('#pfilters'),pcat='All',prows=[];
+POP.forEach(function(grp,gi){
+  var col=PCOLS[gi%PCOLS.length],gl=glowOf(col);
+  grp[1].forEach(function(it){
+    var li=document.createElement('li'),a=document.createElement('a');
+    var q=it[0].replace(/\s*\([^)]*\)/g,'')+' play online';
+    a.className='prow';
+    a.style.setProperty('--c',col);a.style.setProperty('--cg',gl);
+    var n=document.createElement('span'),d=document.createElement('span'),c=document.createElement('span');
+    n.className='pn';n.textContent=it[0];d.className='pd';d.textContent=it[1];
+    c.className='pc';
+    if(it[2]){ /* plays right here inside the page */
+      c.textContent='\u25B6 Plays here \u00B7 '+grp[0];
+      a.href='#';
+      a.addEventListener('click',function(e){e.preventDefault();startPop(it[0],it[2]);});
+    }else{ /* opens on its official site */
+      c.textContent='\u2197 Opens in new tab \u00B7 '+grp[0];
+      a.href=it[3]||('https://www.google.com/search?q='+encodeURIComponent(q));
+      a.target='_blank';a.rel='noopener noreferrer';
+    }
+    a.appendChild(n);a.appendChild(d);a.appendChild(c);li.appendChild(a);plist.appendChild(li);
+    prows.push({li:li,cat:grp[0],text:(it[0]+' '+it[1]).toLowerCase()});
+  });
+});
+function applyPop(){
+  var q=psearch.value.trim().toLowerCase(),n=0;
+  prows.forEach(function(r){
+    var ok=(pcat==='All'||r.cat===pcat)&&(!q||r.text.indexOf(q)>-1);
+    r.li.hidden=!ok;if(ok)n++;
+  });
+  pcount.textContent=n?(n+' of '+prows.length+' games'):'No matches. Try a shorter name.';
+}
+['All'].concat(POP.map(function(g){return g[0];})).forEach(function(c){
+  var b=document.createElement('button');b.type='button';b.className='fchip';b.textContent=c;
+  b.setAttribute('aria-pressed',c==='All'?'true':'false');
+  b.addEventListener('click',function(){
+    Array.prototype.forEach.call(pfilters.children,function(x){x.setAttribute('aria-pressed','false');});
+    b.setAttribute('aria-pressed','true');pcat=c;applyPop();
+  });
+  pfilters.appendChild(b);
+});
+psearch.placeholder='Search '+prows.length+' games';
+psearch.addEventListener('input',applyPop);
+applyPop();
+
+var tabO=$('#tab-orig'),tabP=$('#tab-pop'),secO=$('#orig'),secP=$('#pop');
+$('#tab-orig span').textContent=GAMES.length;$('#tab-pop span').textContent=prows.length;
+function showTab(which){
+  var o=which==='orig';
+  tabO.setAttribute('aria-selected',o?'true':'false');tabP.setAttribute('aria-selected',o?'false':'true');
+  secO.hidden=!o;secP.hidden=o;
+}
+tabO.addEventListener('click',function(){showTab('orig');});
+tabP.addEventListener('click',function(){showTab('pop');});
+
+var snd=$('#snd');
+function paintSnd(){snd.textContent=soundOn?'Sound on':'Sound off';snd.setAttribute('aria-pressed',soundOn?'true':'false');}
+snd.addEventListener('click',function(){soundOn=!soundOn;store.set('catty:sound',soundOn);paintSnd();if(soundOn)beep(660,.1,'triangle',.07);});
+paintSnd();
+
+/* ---------- stage ---------- */
+var stage=$('#stage'),field=$('#field'),veil=$('#veil'),scoreEl=$('#score'),bestEl=$('#best'),gtitle=$('#gtitle');
+var vtitle=$('#vtitle'),vscore=$('#vscore'),vtext=$('#vtext'),vplay=$('#vplay'),vmenu=$('#vmenu');
+var cur=null;
+
+var api={
+  score:function(n){if(!cur)return;cur.score=n;scoreEl.textContent=n;},
+  playing:function(){return !!(cur&&cur.playing);},
+  over:function(n,opts){
+    if(!cur||!cur.playing)return;
+    cur.playing=false;cur.score=n;scoreEl.textContent=n;
+    var isNew=n>cur.best;
+    if(isNew){cur.best=n;store.set('catty:best:'+cur.g.id,n);bestEl.textContent=n;}
+    var o=opts||{};o.isNew=isNew&&n>0;
+    cur.timer=setTimeout(function(){showVeil('over',o);},500);
+  }
+};
+
+function showVeil(mode,o){
+  o=o||{};veil.hidden=false;
+  if(mode==='ready'){
+    vtitle.textContent=cur.g.name;vscore.hidden=true;vtext.textContent=cur.g.how;vplay.textContent='Play';vmenu.hidden=true;
+  }else{
+    vtitle.textContent=o.title||'Game over';vscore.hidden=false;
+    vscore.innerHTML='<b>'+cur.score+'</b>points'+(o.isNew?'<em>New best!</em>':'');
+    vtext.textContent=o.text||('Best: '+cur.best);vplay.textContent='Play again';vmenu.hidden=false;
+  }
+}
+function openGame(g){
+  cur={g:g,inst:null,best:store.get('catty:best:'+g.id,0),score:0,playing:false,timer:0};
+  stage.style.setProperty('--c',g.color);stage.style.setProperty('--cg',g.glow);
+  gtitle.textContent=g.name;scoreEl.textContent='0';bestEl.textContent=cur.best;
+  field.innerHTML='';stage.hidden=false;document.body.classList.add('playing');
+  cur.inst=g.make(field,api);
+  showVeil('ready');
+}
+function play(){
+  if(!cur)return;
+  audio();clearTimeout(cur.timer);veil.hidden=true;cur.playing=true;api.score(0);cur.inst.start();
+}
+function exitGame(){
+  if(!cur){field.innerHTML='';stage.hidden=true;stage.classList.remove('ext');document.body.classList.remove('playing');return;}
+  clearTimeout(cur.timer);
+  try{cur.inst.destroy();}catch(e){}
+  field.innerHTML='';cur=null;stage.hidden=true;stage.classList.remove('ext');document.body.classList.remove('playing');refreshBests();
+}
+/* popular games run embedded inside the site's own stage */
+function startPop(name,url){
+  gtitle.textContent=name;scoreEl.textContent='0';bestEl.textContent='\u2014';
+  field.innerHTML='';
+  var f=document.createElement('iframe');
+  f.src=url;f.title=name;
+  f.setAttribute('allow','autoplay;gamepad');
+  f.style.cssText='position:absolute;inset:0;width:100%;height:100%;border:0;background:#05030b';
+  field.appendChild(f);
+  veil.hidden=true;
+  stage.hidden=false;stage.classList.add('ext');document.body.classList.add('playing');
+}
+vplay.addEventListener('click',play);
+vmenu.addEventListener('click',exitGame);
+$('#back').addEventListener('click',exitGame);
+
+stage.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',function(e){e.preventDefault();});
+if(window.ResizeObserver){
+  new ResizeObserver(function(){if(cur&&cur.inst&&cur.inst.resize)cur.inst.resize();}).observe(field);
+}
+})();
+</script>
+
+</body></html>
